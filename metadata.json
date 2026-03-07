@@ -1,0 +1,5 @@
+{
+  "name": "PodFlow",
+  "description": "A fast, offline-capable podcast player for Android and Web.",
+  "requestFramePermissions": []
+}
