@@ -30,12 +30,12 @@ export function Downloads() {
       </div>
 
       {downloads.length === 0 ? (
-        <div className="flex flex-col items-center justify-center h-64 text-center">
-          <div className="w-16 h-16 bg-zinc-900 rounded-full flex items-center justify-center mb-4">
-            <span className="text-2xl">💾</span>
+        <div className="flex flex-col items-center justify-center h-[60vh] text-center px-4">
+          <div className="w-24 h-24 bg-zinc-900/50 rounded-full flex items-center justify-center mb-6 border border-white/5 shadow-2xl">
+            <span className="text-4xl filter drop-shadow-lg">💾</span>
           </div>
-          <h2 className="text-xl font-semibold mb-2">Sem Downloads</h2>
-          <p className="text-zinc-500 text-sm max-w-xs">
+          <h2 className="text-2xl font-bold mb-3 text-white">Sem Downloads</h2>
+          <p className="text-zinc-400 text-base max-w-sm leading-relaxed">
             Episódios que você baixar para ouvir offline aparecerão aqui.
           </p>
         </div>

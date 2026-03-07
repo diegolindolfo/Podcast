@@ -232,16 +232,26 @@ export function Player() {
       {/* Mini Player */}
       <div 
         className={clsx(
-          "fixed left-0 right-0 z-50 transition-all duration-300 ease-in-out bg-zinc-900 border-t border-zinc-800",
-          isExpanded ? "bottom-0 h-screen" : "bottom-16 h-16"
+          "fixed left-0 right-0 z-50 transition-all duration-300 ease-in-out",
+          isExpanded 
+            ? "bottom-0 h-screen bg-zinc-950" 
+            : "bottom-16 h-16 bg-zinc-900/90 backdrop-blur-xl border-t border-white/5"
         )}
       >
         {!isExpanded && (
-          <div className="flex items-center h-full px-4 cursor-pointer" onClick={() => setIsExpanded(true)}>
+          <div className="flex items-center h-full px-4 cursor-pointer relative" onClick={() => setIsExpanded(true)}>
+            {/* Mini Progress Bar */}
+            <div className="absolute top-0 left-0 right-0 h-[2px] bg-zinc-800">
+              <div 
+                className="h-full bg-accent transition-all duration-300 ease-linear"
+                style={{ width: `${(progress / (duration || 1)) * 100}%` }}
+              />
+            </div>
+            
             <img 
               src={currentEpisode.episodeArtwork || currentEpisode.podcastArtwork} 
               alt="Artwork" 
-              className="w-10 h-10 rounded-md object-cover mr-3"
+              className="w-10 h-10 rounded-md object-cover mr-3 shadow-md"
             />
             <div className="flex-1 min-w-0">
               <h4 className="text-sm font-medium text-zinc-100 truncate">{currentEpisode.title}</h4>
@@ -260,13 +270,27 @@ export function Player() {
         <AnimatePresence>
           {isExpanded && (
             <motion.div 
-              initial={{ opacity: 0, y: 50 }}
+              initial={{ opacity: 0, y: "100%" }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 50 }}
+              exit={{ opacity: 0, y: "100%" }}
+              transition={{ type: "spring", damping: 25, stiffness: 200 }}
+              drag="y"
+              dragConstraints={{ top: 0, bottom: 0 }}
+              dragElastic={0.2}
+              onDragEnd={(e, { offset, velocity }) => {
+                if (offset.y > 100 || velocity.y > 500) {
+                  setIsExpanded(false);
+                }
+              }}
               className="absolute inset-0 bg-zinc-950 flex flex-col p-6"
             >
+              {/* Drag Handle */}
+              <div className="w-full flex justify-center pt-2 pb-4">
+                <div className="w-12 h-1.5 bg-zinc-800 rounded-full" />
+              </div>
+
               <div className="flex justify-between items-center mb-8 pt-safe">
-                <button onClick={() => setIsExpanded(false)} className="p-2 text-zinc-400 hover:text-white">
+                <button onClick={() => setIsExpanded(false)} className="p-2 -ml-2 text-zinc-400 hover:text-white transition-colors">
                   <ChevronDown size={28} />
                 </button>
                 <span className="text-xs font-semibold tracking-widest uppercase text-zinc-500">Tocando Agora</span>

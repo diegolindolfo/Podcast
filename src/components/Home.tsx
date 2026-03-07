@@ -15,13 +15,13 @@ export function Home({ onSelectPodcast }: HomeProps) {
       </div>
 
       {subscriptions.length === 0 ? (
-        <div className="flex flex-col items-center justify-center h-64 text-center">
-          <div className="w-16 h-16 bg-zinc-900 rounded-full flex items-center justify-center mb-4">
-            <span className="text-2xl">🎧</span>
+        <div className="flex flex-col items-center justify-center h-[60vh] text-center px-4">
+          <div className="w-24 h-24 bg-zinc-900/50 rounded-full flex items-center justify-center mb-6 border border-white/5 shadow-2xl">
+            <span className="text-4xl filter drop-shadow-lg">🎧</span>
           </div>
-          <h2 className="text-xl font-semibold mb-2">Nenhuma Inscrição</h2>
-          <p className="text-zinc-500 text-sm max-w-xs">
-            Pesquise por seus podcasts favoritos e inscreva-se para vê-los aqui.
+          <h2 className="text-2xl font-bold mb-3 text-white">Nenhuma Inscrição</h2>
+          <p className="text-zinc-400 text-base max-w-sm leading-relaxed">
+            Pesquise por seus podcasts favoritos na aba Descobrir e inscreva-se para acompanhá-los aqui.
           </p>
         </div>
       ) : (
