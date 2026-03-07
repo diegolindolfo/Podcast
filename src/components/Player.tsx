@@ -50,7 +50,24 @@ export function Player() {
     img.onload = () => {
       try {
         const color = fac.getColor(img, { algorithm: 'dominant' });
-        setAccentColor(color.hex);
+        let [r, g, b] = color.value;
+        
+        // Calculate luminance to ensure it's readable on dark backgrounds
+        const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+        
+        if (luminance < 0.6) {
+          const factor = (0.6 - luminance) / (1 - luminance);
+          r = r + (255 - r) * factor;
+          g = g + (255 - g) * factor;
+          b = b + (255 - b) * factor;
+        }
+        
+        const toHex = (c: number) => {
+          const hex = Math.round(c).toString(16);
+          return hex.length === 1 ? '0' + hex : hex;
+        };
+        
+        setAccentColor(`#${toHex(r)}${toHex(g)}${toHex(b)}`);
       } catch (e) {
         console.error('Failed to extract color', e);
         setAccentColor('#10b981'); // fallback
