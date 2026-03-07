@@ -1,9 +1,17 @@
 import { useStore } from '../store';
-import { Settings as SettingsIcon, Database, Info, Moon, Trash2 } from 'lucide-react';
+import { Settings as SettingsIcon, Database, Info, Moon, Trash2, Bell, BellRing } from 'lucide-react';
 import { deleteDownloadedEpisode } from '../services/downloader';
+import { useState, useEffect } from 'react';
 
 export function Settings() {
   const { downloads, subscriptions, clearSubscriptions, clearDownloads } = useStore();
+  const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>('default');
+
+  useEffect(() => {
+    if ('Notification' in window) {
+      setNotificationPermission(Notification.permission);
+    }
+  }, []);
 
   const totalDownloadSize = downloads.reduce((acc, curr) => acc + (curr.size || 0), 0);
   const formattedSize = (totalDownloadSize / (1024 * 1024)).toFixed(1);
@@ -23,6 +31,48 @@ export function Settings() {
     }
   };
 
+  const requestNotificationPermission = async () => {
+    if (!('Notification' in window)) {
+      alert('Este navegador não suporta notificações.');
+      return;
+    }
+    const permission = await Notification.requestPermission();
+    setNotificationPermission(permission);
+    
+    if (permission === 'granted') {
+      new Notification('Notificações Ativadas!', {
+        body: 'Você receberá avisos sobre novos episódios.',
+        icon: '/icon.svg'
+      });
+    }
+  };
+
+  const simulateNewEpisode = () => {
+    if (notificationPermission === 'granted') {
+      // Try to use Service Worker registration for notifications if available
+      navigator.serviceWorker.getRegistration().then(reg => {
+        const options = {
+          body: 'Um novo episódio do seu podcast favorito acabou de sair!',
+          icon: '/icon.svg',
+          badge: '/icon.svg',
+          vibrate: [100, 50, 100],
+          data: {
+            dateOfArrival: Date.now(),
+            primaryKey: 1
+          }
+        };
+        
+        if (reg && reg.showNotification) {
+          reg.showNotification('Novo Episódio Disponível!', options);
+        } else {
+          new Notification('Novo Episódio Disponível!', options);
+        }
+      });
+    } else {
+      alert('Por favor, ative as notificações primeiro.');
+    }
+  };
+
   return (
     <div className="p-4 pb-24 min-h-screen bg-zinc-950 text-zinc-100">
       <div className="pt-safe pb-6">
@@ -30,6 +80,40 @@ export function Settings() {
       </div>
 
       <div className="space-y-6">
+        {/* Notifications Section */}
+        <section>
+          <h2 className="text-sm font-semibold tracking-widest uppercase text-zinc-500 mb-4 px-2">Notificações</h2>
+          <div className="bg-zinc-900 rounded-2xl overflow-hidden divide-y divide-zinc-800/50">
+            <div className="flex items-center justify-between p-4">
+              <div className="flex items-center gap-3">
+                <Bell className={notificationPermission === 'granted' ? 'text-accent' : 'text-zinc-500'} size={20} />
+                <span className="font-medium">Novos Episódios</span>
+              </div>
+              <button 
+                onClick={requestNotificationPermission}
+                disabled={notificationPermission === 'granted'}
+                className={`text-sm px-3 py-1.5 rounded-full font-medium ${
+                  notificationPermission === 'granted' 
+                    ? 'bg-accent/20 text-accent' 
+                    : 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700'
+                }`}
+              >
+                {notificationPermission === 'granted' ? 'Ativado' : 'Ativar'}
+              </button>
+            </div>
+            {notificationPermission === 'granted' && (
+              <div 
+                className="flex items-center justify-between p-4 cursor-pointer hover:bg-zinc-800/50 transition-colors"
+                onClick={simulateNewEpisode}
+              >
+                <div className="flex items-center gap-3">
+                  <BellRing className="text-zinc-400" size={20} />
+                  <span className="font-medium text-zinc-300">Testar Notificação</span>
+                </div>
+              </div>
+            )}
+          </div>
+        </section>
         {/* Storage Section */}
         <section>
           <h2 className="text-sm font-semibold tracking-widest uppercase text-zinc-500 mb-4 px-2">Armazenamento</h2>

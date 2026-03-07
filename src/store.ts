@@ -10,10 +10,13 @@ interface PlayerState {
   playbackRate: number;
   volume: number;
   subscriptions: Podcast[];
+  listenedPodcasts: Podcast[];
   downloads: DownloadedEpisode[];
   savedProgress: Record<string, number>;
   sleepTimer: number | null; // minutes remaining or timestamp
   accentColor: string;
+  podcastLastViewed: Record<number, number>;
+  podcastLatestEpisode: Record<number, number>;
   
   setCurrentEpisode: (episode: Episode | null) => void;
   setIsPlaying: (isPlaying: boolean) => void;
@@ -29,6 +32,9 @@ interface PlayerState {
   loadSubscriptions: () => Promise<void>;
   clearSubscriptions: () => Promise<void>;
   
+  addListenedPodcast: (podcast: Podcast) => Promise<void>;
+  loadListenedPodcasts: () => Promise<void>;
+  
   addDownload: (episode: DownloadedEpisode) => Promise<void>;
   removeDownload: (episodeId: string) => Promise<void>;
   loadDownloads: () => Promise<void>;
@@ -36,6 +42,10 @@ interface PlayerState {
 
   saveEpisodeProgress: (episodeId: string, progress: number) => Promise<void>;
   loadSavedProgress: () => Promise<void>;
+
+  setPodcastLastViewed: (podcastId: number, timestamp: number) => Promise<void>;
+  setPodcastLatestEpisode: (podcastId: number, timestamp: number) => Promise<void>;
+  loadPodcastTimestamps: () => Promise<void>;
 }
 
 export const useStore = create<PlayerState>((setStore, getStore) => ({
@@ -46,10 +56,13 @@ export const useStore = create<PlayerState>((setStore, getStore) => ({
   playbackRate: 1,
   volume: 1,
   subscriptions: [],
+  listenedPodcasts: [],
   downloads: [],
   savedProgress: {},
   sleepTimer: null,
   accentColor: '#10b981',
+  podcastLastViewed: {},
+  podcastLatestEpisode: {},
 
   setCurrentEpisode: (episode) => setStore({ currentEpisode: episode }),
   setIsPlaying: (isPlaying) => setStore({ isPlaying }),
@@ -64,6 +77,12 @@ export const useStore = create<PlayerState>((setStore, getStore) => ({
     const subs = [...getStore().subscriptions, podcast];
     await set('subscriptions', subs);
     setStore({ subscriptions: subs });
+    
+    // Set initial last viewed to now so we don't show a dot immediately
+    const currentLastViewed = getStore().podcastLastViewed;
+    const updatedLastViewed = { ...currentLastViewed, [podcast.collectionId]: Date.now() };
+    await set('podcastLastViewed', updatedLastViewed);
+    setStore({ podcastLastViewed: updatedLastViewed });
   },
   
   unsubscribe: async (podcastId) => {
@@ -80,6 +99,20 @@ export const useStore = create<PlayerState>((setStore, getStore) => ({
   clearSubscriptions: async () => {
     await set('subscriptions', []);
     setStore({ subscriptions: [] });
+  },
+
+  addListenedPodcast: async (podcast) => {
+    const current = getStore().listenedPodcasts;
+    // Remove if already exists to move it to the top
+    const filtered = current.filter(p => p.collectionId !== podcast.collectionId);
+    const updated = [podcast, ...filtered].slice(0, 50); // Keep last 50
+    await set('listenedPodcasts', updated);
+    setStore({ listenedPodcasts: updated });
+  },
+
+  loadListenedPodcasts: async () => {
+    const listened = await get<Podcast[]>('listenedPodcasts') || [];
+    setStore({ listenedPodcasts: listened });
   },
 
   addDownload: async (episode) => {
@@ -114,5 +147,25 @@ export const useStore = create<PlayerState>((setStore, getStore) => ({
   loadSavedProgress: async () => {
     const progress = await get<Record<string, number>>('savedProgress') || {};
     setStore({ savedProgress: progress });
+  },
+
+  setPodcastLastViewed: async (podcastId, timestamp) => {
+    const current = getStore().podcastLastViewed;
+    const updated = { ...current, [podcastId]: timestamp };
+    await set('podcastLastViewed', updated);
+    setStore({ podcastLastViewed: updated });
+  },
+
+  setPodcastLatestEpisode: async (podcastId, timestamp) => {
+    const current = getStore().podcastLatestEpisode;
+    const updated = { ...current, [podcastId]: timestamp };
+    await set('podcastLatestEpisode', updated);
+    setStore({ podcastLatestEpisode: updated });
+  },
+
+  loadPodcastTimestamps: async () => {
+    const lastViewed = await get<Record<number, number>>('podcastLastViewed') || {};
+    const latestEpisode = await get<Record<number, number>>('podcastLatestEpisode') || {};
+    setStore({ podcastLastViewed: lastViewed, podcastLatestEpisode: latestEpisode });
   }
 }));

@@ -4,6 +4,7 @@ export interface Podcast {
   artistName: string;
   artworkUrl600: string;
   feedUrl: string;
+  genreIds?: string[];
 }
 
 export interface Episode {

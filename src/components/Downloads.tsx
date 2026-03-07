@@ -26,7 +26,7 @@ export function Downloads() {
   return (
     <div className="p-4 pb-24 min-h-screen bg-zinc-950 text-zinc-100">
       <div className="pt-safe pb-6">
-        <h1 className="text-3xl font-bold tracking-tight">Downloads</h1>
+        <h1 className="text-3xl font-bold tracking-tight bg-clip-text text-transparent bg-[var(--color-accent-gradient)]">Downloads</h1>
       </div>
 
       {downloads.length === 0 ? (
@@ -72,7 +72,7 @@ export function Downloads() {
                 <div className="flex items-center gap-2">
                   <button 
                     onClick={() => handlePlay(episode)}
-                    className="w-10 h-10 rounded-full bg-zinc-800 flex items-center justify-center text-zinc-300 hover:bg-accent hover:text-zinc-950 transition-colors"
+                    className="w-10 h-10 rounded-full bg-zinc-800 flex items-center justify-center text-zinc-300 hover:bg-[var(--color-accent-gradient)] hover:text-white transition-all"
                   >
                     {isPlayingThis ? <Pause size={18} fill="currentColor" /> : <Play size={18} fill="currentColor" className="ml-1" />}
                   </button>

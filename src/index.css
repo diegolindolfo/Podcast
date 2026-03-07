@@ -4,16 +4,20 @@
 @theme {
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
-  --color-accent: var(--app-accent, #10b981);
+  --color-accent: var(--app-accent, #d946ef);
+  --color-accent-gradient: var(--app-accent-gradient);
+  --color-bg-dark: #0f111a;
+  --color-bg-card: #1e2235;
 }
 
 :root {
-  --app-accent: #10b981;
+  --app-accent: #d946ef;
+  --app-accent-gradient: linear-gradient(135deg, #06b6d4, #8b5cf6, #d946ef, #f97316);
 }
 
 @layer base {
   body {
-    @apply bg-zinc-950 text-zinc-100 antialiased overflow-x-hidden;
+    @apply bg-[var(--color-bg-dark)] text-zinc-100 antialiased overflow-x-hidden;
     -webkit-tap-highlight-color: transparent;
   }
 }

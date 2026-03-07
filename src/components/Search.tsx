@@ -3,6 +3,7 @@ import { Search as SearchIcon, Loader2, ChevronLeft } from 'lucide-react';
 import { Podcast } from '../types';
 import { searchPodcasts, getTopPodcasts } from '../services/api';
 import { clsx } from 'clsx';
+import { useStore } from '../store';
 
 interface SearchProps {
   onSelectPodcast: (podcast: Podcast) => void;
@@ -15,7 +16,7 @@ const CATEGORIES = [
   { id: '1489', name: 'Notícias', icon: '📰', color: 'bg-red-500' },
   { id: '1488', name: 'True Crime', icon: '🕵️', color: 'bg-zinc-800' },
   { id: '1545', name: 'Esportes', icon: '⚽', color: 'bg-green-500' },
-  { id: '1321', name: 'Negócios', icon: '💼', color: 'bg-accent' },
+  { id: '1321', name: 'Negócios', icon: '💼', color: 'bg-fuchsia-500' },
   { id: '1304', name: 'Educação', icon: '📚', color: 'bg-indigo-500' },
   { id: '1512', name: 'Saúde', icon: '💪', color: 'bg-rose-500' },
 ];
@@ -25,6 +26,47 @@ export function Search({ onSelectPodcast }: SearchProps) {
   const [results, setResults] = useState<Podcast[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<{id: string, name: string} | null>(null);
+  const [suggestions, setSuggestions] = useState<Podcast[]>([]);
+  const { listenedPodcasts, subscriptions } = useStore();
+
+  useEffect(() => {
+    const fetchSuggestions = async () => {
+      if (listenedPodcasts.length === 0) return;
+      
+      // Extract all genre IDs from listened podcasts
+      const allGenres = listenedPodcasts.flatMap(p => p.genreIds || []);
+      
+      // Filter out generic genres like '26' (Podcasts)
+      const specificGenres = allGenres.filter(g => g !== '26');
+      
+      if (specificGenres.length === 0) return;
+      
+      // Find the most frequent genre
+      const genreCounts = specificGenres.reduce((acc, genre) => {
+        acc[genre] = (acc[genre] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>);
+      
+      const topGenre = Object.keys(genreCounts).sort((a, b) => genreCounts[b] - genreCounts[a])[0];
+      
+      try {
+        const topPodcasts = await getTopPodcasts(topGenre);
+        
+        // Filter out podcasts the user is already subscribed to or has listened to
+        const knownIds = new Set([
+          ...subscriptions.map(s => s.collectionId),
+          ...listenedPodcasts.map(l => l.collectionId)
+        ]);
+        
+        const newSuggestions = topPodcasts.filter(p => !knownIds.has(p.collectionId)).slice(0, 10);
+        setSuggestions(newSuggestions);
+      } catch (error) {
+        console.error('Failed to fetch suggestions', error);
+      }
+    };
+    
+    fetchSuggestions();
+  }, [listenedPodcasts, subscriptions]);
 
   useEffect(() => {
     const delayDebounceFn = setTimeout(async () => {
@@ -78,7 +120,7 @@ export function Search({ onSelectPodcast }: SearchProps) {
   return (
     <div className="p-4 pb-24 min-h-screen bg-zinc-950 text-zinc-100">
       <div className="sticky top-0 z-10 bg-zinc-950/80 backdrop-blur-md pt-safe pb-4">
-        <h1 className="text-3xl font-bold tracking-tight mb-4">Descobrir</h1>
+        <h1 className="text-3xl font-bold tracking-tight mb-4 bg-clip-text text-transparent bg-[var(--color-accent-gradient)]">Descobrir</h1>
         <div className="relative">
           <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" size={20} />
           <input
@@ -98,22 +140,53 @@ export function Search({ onSelectPodcast }: SearchProps) {
       )}
 
       {!loading && query.length === 0 && !selectedCategory && (
-        <div className="mt-6">
-          <h2 className="text-xl font-bold mb-4">Explorar Categorias</h2>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-            {CATEGORIES.map((cat) => (
-              <button
-                key={cat.name}
-                onClick={() => handleCategoryClick(cat)}
-                className={clsx(
-                  "flex items-center gap-3 p-4 rounded-xl text-left transition-transform hover:scale-105 active:scale-95",
-                  cat.color
-                )}
-              >
-                <span className="text-2xl">{cat.icon}</span>
-                <span className="font-semibold text-white shadow-sm">{cat.name}</span>
-              </button>
-            ))}
+        <div className="mt-6 flex flex-col gap-8">
+          {suggestions.length > 0 && (
+            <div>
+              <h2 className="text-xl font-bold mb-4">Sugestões para você</h2>
+              <div className="flex overflow-x-auto pb-4 -mx-4 px-4 gap-4 snap-x scrollbar-hide">
+                {suggestions.map((podcast) => (
+                  <button
+                    key={podcast.collectionId}
+                    onClick={() => onSelectPodcast(podcast)}
+                    className="text-left group flex flex-col min-w-[140px] max-w-[140px] snap-start"
+                  >
+                    <div className="relative aspect-square rounded-xl overflow-hidden bg-zinc-900 mb-2 shadow-lg shadow-black/40">
+                      <img
+                        src={podcast.artworkUrl600}
+                        alt={podcast.collectionName}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        loading="lazy"
+                        referrerPolicy="no-referrer"
+                      />
+                    </div>
+                    <h3 className="font-semibold text-sm line-clamp-2 leading-tight group-hover:text-accent transition-colors">
+                      {podcast.collectionName}
+                    </h3>
+                    <p className="text-xs text-zinc-500 truncate mt-1">{podcast.artistName}</p>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div>
+            <h2 className="text-xl font-bold mb-4">Explorar Categorias</h2>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              {CATEGORIES.map((cat) => (
+                <button
+                  key={cat.name}
+                  onClick={() => handleCategoryClick(cat)}
+                  className={clsx(
+                    "flex items-center gap-3 p-4 rounded-xl text-left transition-transform hover:scale-105 active:scale-95",
+                    cat.color
+                  )}
+                >
+                  <span className="text-2xl">{cat.icon}</span>
+                  <span className="font-semibold text-white shadow-sm">{cat.name}</span>
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       )}

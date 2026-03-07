@@ -7,6 +7,7 @@ import { downloadEpisode, deleteDownloadedEpisode } from '../services/downloader
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { clsx } from 'clsx';
+import { formatDuration } from '../utils';
 
 interface PodcastDetailProps {
   podcast: Podcast;
@@ -28,10 +29,17 @@ export function PodcastDetail({ podcast, onBack }: PodcastDetailProps) {
     subscriptions,
     subscribe,
     unsubscribe,
-    downloads
+    downloads,
+    addListenedPodcast,
+    setPodcastLastViewed,
+    setPodcastLatestEpisode
   } = useStore();
 
   const isSubscribed = subscriptions.some(p => p.collectionId === podcast.collectionId);
+
+  useEffect(() => {
+    setPodcastLastViewed(podcast.collectionId, Date.now());
+  }, [podcast.collectionId, setPodcastLastViewed]);
 
   useEffect(() => {
     let active = true;
@@ -67,6 +75,15 @@ export function PodcastDetail({ podcast, onBack }: PodcastDetailProps) {
         }).filter((e: Episode) => e.audioUrl);
         
         setEpisodes(eps);
+
+        if (eps.length > 0 && eps[0].pubDate) {
+          const latestDate = new Date(eps[0].pubDate).getTime();
+          if (!isNaN(latestDate)) {
+            setPodcastLatestEpisode(podcast.collectionId, latestDate);
+            // Update last viewed to be at least the latest episode date to clear the dot
+            setPodcastLastViewed(podcast.collectionId, Math.max(Date.now(), latestDate));
+          }
+        }
       } catch (error) {
         console.error(error);
       } finally {
@@ -84,6 +101,7 @@ export function PodcastDetail({ podcast, onBack }: PodcastDetailProps) {
     } else {
       setCurrentEpisode(episode);
       setIsPlaying(true);
+      addListenedPodcast(podcast);
     }
   };
 
@@ -219,7 +237,7 @@ export function PodcastDetail({ podcast, onBack }: PodcastDetailProps) {
                         {isPlayingThis ? <Pause size={14} fill="currentColor" /> : <Play size={14} fill="currentColor" className="ml-0.5" />}
                       </button>
                       {episode.duration && (
-                        <span className="text-[13px] font-medium text-accent">{episode.duration}</span>
+                        <span className="text-[13px] font-medium text-accent">{formatDuration(episode.duration)}</span>
                       )}
                     </div>
                     

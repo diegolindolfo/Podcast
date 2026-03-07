@@ -210,8 +210,12 @@ export function Player() {
 
   const formatTime = (time: number) => {
     if (isNaN(time)) return '0:00';
-    const mins = Math.floor(time / 60);
+    const hours = Math.floor(time / 3600);
+    const mins = Math.floor((time % 3600) / 60);
     const secs = Math.floor(time % 60);
+    if (hours > 0) {
+      return `${hours}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    }
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
@@ -260,7 +264,7 @@ export function Player() {
             {/* Mini Progress Bar */}
             <div className="absolute top-0 left-0 right-0 h-[2px] bg-zinc-800">
               <div 
-                className="h-full bg-accent transition-all duration-300 ease-linear"
+                className="h-full bg-[var(--color-accent-gradient)] transition-all duration-300 ease-linear"
                 style={{ width: `${(progress / (duration || 1)) * 100}%` }}
               />
             </div>
@@ -347,7 +351,7 @@ export function Player() {
                   </button>
                   <button 
                     onClick={() => setIsPlaying(!isPlaying)}
-                    className="w-20 h-20 flex items-center justify-center bg-accent text-zinc-950 rounded-full hover:bg-accent/90 transition-colors shadow-lg shadow-accent/20"
+                    className="w-20 h-20 flex items-center justify-center bg-[var(--color-accent-gradient)] text-white rounded-full hover:opacity-90 transition-opacity shadow-lg shadow-accent/20"
                   >
                     {isPlaying ? <Pause size={40} fill="currentColor" /> : <Play size={40} fill="currentColor" className="ml-2" />}
                   </button>

@@ -1,5 +1,5 @@
 {
   "name": "PodFlow",
-  "description": "A fast, offline-capable podcast player for Android and Web.",
+  "description": "PWA de podcast com notificações de novos episódios para Android.",
   "requestFramePermissions": []
 }
