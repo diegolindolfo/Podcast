@@ -8,11 +8,11 @@ import { deleteDownloadedEpisode } from '../services/downloader';
 export function Downloads() {
   const { downloads, currentEpisode, isPlaying, setIsPlaying, setCurrentEpisode } = useStore();
 
-  const handlePlay = (episode: any) => {
+  const handlePlay = async (episode: any) => {
     if (currentEpisode?.id === episode.id) {
       setIsPlaying(!isPlaying);
     } else {
-      setCurrentEpisode(episode);
+      await setCurrentEpisode(episode);
       setIsPlaying(true);
     }
   };

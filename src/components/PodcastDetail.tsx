@@ -95,11 +95,11 @@ export function PodcastDetail({ podcast, onBack }: PodcastDetailProps) {
     return () => { active = false; };
   }, [podcast.feedUrl]);
 
-  const handlePlay = (episode: Episode) => {
+  const handlePlay = async (episode: Episode) => {
     if (currentEpisode?.id === episode.id) {
       setIsPlaying(!isPlaying);
     } else {
-      setCurrentEpisode(episode);
+      await setCurrentEpisode(episode);
       setIsPlaying(true);
       addListenedPodcast(podcast);
     }

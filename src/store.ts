@@ -18,7 +18,7 @@ interface PlayerState {
   podcastLastViewed: Record<number, number>;
   podcastLatestEpisode: Record<number, number>;
   
-  setCurrentEpisode: (episode: Episode | null) => void;
+  setCurrentEpisode: (episode: Episode | null) => Promise<void>;
   setIsPlaying: (isPlaying: boolean) => void;
   setProgress: (progress: number) => void;
   setDuration: (duration: number) => void;
@@ -46,6 +46,7 @@ interface PlayerState {
   setPodcastLastViewed: (podcastId: number, timestamp: number) => Promise<void>;
   setPodcastLatestEpisode: (podcastId: number, timestamp: number) => Promise<void>;
   loadPodcastTimestamps: () => Promise<void>;
+  loadCurrentEpisode: () => Promise<void>;
 }
 
 export const useStore = create<PlayerState>((setStore, getStore) => ({
@@ -64,7 +65,10 @@ export const useStore = create<PlayerState>((setStore, getStore) => ({
   podcastLastViewed: {},
   podcastLatestEpisode: {},
 
-  setCurrentEpisode: (episode) => setStore({ currentEpisode: episode }),
+  setCurrentEpisode: async (episode) => {
+    await set('currentEpisode', episode);
+    setStore({ currentEpisode: episode });
+  },
   setIsPlaying: (isPlaying) => setStore({ isPlaying }),
   setProgress: (progress) => setStore({ progress }),
   setDuration: (duration) => setStore({ duration }),
@@ -167,5 +171,10 @@ export const useStore = create<PlayerState>((setStore, getStore) => ({
     const lastViewed = await get<Record<number, number>>('podcastLastViewed') || {};
     const latestEpisode = await get<Record<number, number>>('podcastLatestEpisode') || {};
     setStore({ podcastLastViewed: lastViewed, podcastLatestEpisode: latestEpisode });
+  },
+
+  loadCurrentEpisode: async () => {
+    const episode = await get<Episode>('currentEpisode') || null;
+    setStore({ currentEpisode: episode });
   }
 }));

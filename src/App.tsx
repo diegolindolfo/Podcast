@@ -12,7 +12,7 @@ import { Podcast } from './types';
 export default function App() {
   const [currentTab, setCurrentTab] = useState('home');
   const [selectedPodcast, setSelectedPodcast] = useState<Podcast | null>(null);
-  const { loadSubscriptions, loadDownloads, loadSavedProgress, loadListenedPodcasts, loadPodcastTimestamps, accentColor } = useStore();
+  const { loadSubscriptions, loadDownloads, loadSavedProgress, loadListenedPodcasts, loadPodcastTimestamps, loadCurrentEpisode, accentColor } = useStore();
 
   useEffect(() => {
     loadSubscriptions();
@@ -20,6 +20,7 @@ export default function App() {
     loadSavedProgress();
     loadListenedPodcasts();
     loadPodcastTimestamps();
+    loadCurrentEpisode();
   }, []);
 
   useEffect(() => {
