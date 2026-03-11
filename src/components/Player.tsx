@@ -98,18 +98,56 @@ export function Player() {
 
       navigator.mediaSession.setActionHandler('play', () => setIsPlaying(true));
       navigator.mediaSession.setActionHandler('pause', () => setIsPlaying(false));
-      navigator.mediaSession.setActionHandler('seekbackward', () => {
+      navigator.mediaSession.setActionHandler('seekbackward', (details) => {
+        const skipTime = details.seekOffset || 15;
         if (audioRef.current) {
-          audioRef.current.currentTime -= 15;
+          audioRef.current.currentTime = Math.max(audioRef.current.currentTime - skipTime, 0);
+          updatePositionState();
         }
       });
-      navigator.mediaSession.setActionHandler('seekforward', () => {
+      navigator.mediaSession.setActionHandler('seekforward', (details) => {
+        const skipTime = details.seekOffset || 30;
         if (audioRef.current) {
-          audioRef.current.currentTime += 30;
+          audioRef.current.currentTime = Math.min(audioRef.current.currentTime + skipTime, audioRef.current.duration);
+          updatePositionState();
         }
       });
+
+      try {
+        navigator.mediaSession.setActionHandler('seekto', (details) => {
+          if (details.seekTime !== undefined && audioRef.current) {
+            audioRef.current.currentTime = details.seekTime;
+            updatePositionState();
+          }
+        });
+      } catch (e) {
+        // seekto not supported
+      }
+
+      try {
+        navigator.mediaSession.setActionHandler('stop', () => {
+          setIsPlaying(false);
+          if (audioRef.current) audioRef.current.currentTime = 0;
+        });
+      } catch (e) {
+        // stop not supported
+      }
     }
   }, [currentEpisode, setIsPlaying]);
+
+  const updatePositionState = () => {
+    if ('mediaSession' in navigator && 'setPositionState' in navigator.mediaSession && audioRef.current && !isNaN(audioRef.current.duration) && isFinite(audioRef.current.duration)) {
+      try {
+        navigator.mediaSession.setPositionState({
+          duration: audioRef.current.duration,
+          playbackRate: audioRef.current.playbackRate,
+          position: audioRef.current.currentTime,
+        });
+      } catch (e) {
+        console.error('Error updating position state', e);
+      }
+    }
+  };
 
   // Sleep timer logic
   useEffect(() => {
@@ -151,8 +189,14 @@ export function Player() {
     if (audioRef.current) {
       if (isPlaying) {
         audioRef.current.play().catch(console.error);
+        if ('mediaSession' in navigator) {
+          navigator.mediaSession.playbackState = 'playing';
+        }
       } else {
         audioRef.current.pause();
+        if ('mediaSession' in navigator) {
+          navigator.mediaSession.playbackState = 'paused';
+        }
       }
     }
   }, [isPlaying, audioSrc]);
@@ -173,6 +217,7 @@ export function Player() {
       if (Math.abs(currentTime - lastSavedTime.current) > 5) {
         saveEpisodeProgress(currentEpisode.id, currentTime);
         lastSavedTime.current = currentTime;
+        updatePositionState();
       }
     }
   };
@@ -180,6 +225,7 @@ export function Player() {
   const handleLoadedMetadata = () => {
     if (audioRef.current && currentEpisode) {
       setDuration(audioRef.current.duration);
+      updatePositionState();
       
       // Restore saved progress
       if (!hasRestoredProgress.current && savedProgress[currentEpisode.id]) {
