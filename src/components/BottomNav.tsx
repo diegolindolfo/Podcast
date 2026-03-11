@@ -1,4 +1,4 @@
-import { Home, Search, Download, Settings } from 'lucide-react';
+import { Home, Search, Download, Settings, History } from 'lucide-react';
 import { clsx } from 'clsx';
 
 interface BottomNavProps {
@@ -11,6 +11,7 @@ export function BottomNav({ currentTab, onChange }: BottomNavProps) {
     { id: 'home', icon: Home, label: 'Início' },
     { id: 'search', icon: Search, label: 'Descobrir' },
     { id: 'downloads', icon: Download, label: 'Downloads' },
+    { id: 'history', icon: History, label: 'Histórico' },
     { id: 'settings', icon: Settings, label: 'Ajustes' },
   ];
 

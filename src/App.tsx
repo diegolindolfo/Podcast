@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Home } from './components/Home';
 import { Search } from './components/Search';
 import { Downloads } from './components/Downloads';
+import { History } from './components/History';
 import { Settings } from './components/Settings';
 import { BottomNav } from './components/BottomNav';
 import { Player } from './components/Player';
@@ -12,7 +13,7 @@ import { Podcast } from './types';
 export default function App() {
   const [currentTab, setCurrentTab] = useState('home');
   const [selectedPodcast, setSelectedPodcast] = useState<Podcast | null>(null);
-  const { loadSubscriptions, loadDownloads, loadSavedProgress, loadListenedPodcasts, loadPodcastTimestamps, loadCurrentEpisode, accentColor } = useStore();
+  const { loadSubscriptions, loadDownloads, loadSavedProgress, loadListenedPodcasts, loadPodcastTimestamps, loadCurrentEpisode, loadHistory, accentColor } = useStore();
 
   useEffect(() => {
     loadSubscriptions();
@@ -21,6 +22,7 @@ export default function App() {
     loadListenedPodcasts();
     loadPodcastTimestamps();
     loadCurrentEpisode();
+    loadHistory();
   }, []);
 
   useEffect(() => {
@@ -49,6 +51,7 @@ export default function App() {
           {currentTab === 'home' && <Home onSelectPodcast={handleSelectPodcast} />}
           {currentTab === 'search' && <Search onSelectPodcast={handleSelectPodcast} />}
           {currentTab === 'downloads' && <Downloads />}
+          {currentTab === 'history' && <History />}
           {currentTab === 'settings' && <Settings />}
         </>
       )}

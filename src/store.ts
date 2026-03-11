@@ -12,6 +12,7 @@ interface PlayerState {
   subscriptions: Podcast[];
   listenedPodcasts: Podcast[];
   downloads: DownloadedEpisode[];
+  history: Episode[];
   savedProgress: Record<string, number>;
   sleepTimer: number | null; // minutes remaining or timestamp
   accentColor: string;
@@ -40,6 +41,10 @@ interface PlayerState {
   loadDownloads: () => Promise<void>;
   clearDownloads: () => Promise<void>;
 
+  addToHistory: (episode: Episode) => Promise<void>;
+  clearHistory: () => Promise<void>;
+  loadHistory: () => Promise<void>;
+
   saveEpisodeProgress: (episodeId: string, progress: number) => Promise<void>;
   loadSavedProgress: () => Promise<void>;
 
@@ -59,6 +64,7 @@ export const useStore = create<PlayerState>((setStore, getStore) => ({
   subscriptions: [],
   listenedPodcasts: [],
   downloads: [],
+  history: [],
   savedProgress: {},
   sleepTimer: null,
   accentColor: '#10b981',
@@ -139,6 +145,24 @@ export const useStore = create<PlayerState>((setStore, getStore) => ({
   clearDownloads: async () => {
     await set('downloads', []);
     setStore({ downloads: [] });
+  },
+
+  addToHistory: async (episode) => {
+    const current = getStore().history;
+    const filtered = current.filter(e => e.id !== episode.id);
+    const updated = [episode, ...filtered].slice(0, 100);
+    await set('history', updated);
+    setStore({ history: updated });
+  },
+
+  clearHistory: async () => {
+    await set('history', []);
+    setStore({ history: [] });
+  },
+
+  loadHistory: async () => {
+    const history = await get<Episode[]>('history') || [];
+    setStore({ history });
   },
 
   saveEpisodeProgress: async (episodeId, progress) => {

@@ -22,7 +22,8 @@ export function Player() {
     saveEpisodeProgress,
     sleepTimer,
     setSleepTimer,
-    setAccentColor
+    setAccentColor,
+    addToHistory
   } = useStore();
   
   const audioRef = useRef<HTMLAudioElement>(null);
@@ -192,6 +193,9 @@ export function Player() {
         if ('mediaSession' in navigator) {
           navigator.mediaSession.playbackState = 'playing';
         }
+        if (currentEpisode) {
+          addToHistory(currentEpisode);
+        }
       } else {
         audioRef.current.pause();
         if ('mediaSession' in navigator) {
@@ -199,7 +203,7 @@ export function Player() {
         }
       }
     }
-  }, [isPlaying, audioSrc]);
+  }, [isPlaying, audioSrc, currentEpisode, addToHistory]);
 
   useEffect(() => {
     if (audioRef.current) {
