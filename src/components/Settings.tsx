@@ -1,11 +1,13 @@
 import { useStore } from '../store';
-import { Settings as SettingsIcon, Database, Info, Moon, Trash2, Bell, BellRing } from 'lucide-react';
+import { Settings as SettingsIcon, Database, Info, Moon, Trash2, Bell, BellRing, History, Check, X } from 'lucide-react';
 import { deleteDownloadedEpisode } from '../services/downloader';
 import { useState, useEffect } from 'react';
 
 export function Settings() {
-  const { downloads, subscriptions, clearSubscriptions, clearDownloads } = useStore();
+  const { downloads, subscriptions, history, clearSubscriptions, clearDownloads, clearHistory } = useStore();
   const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>('default');
+  const [confirming, setConfirming] = useState<'downloads' | 'subscriptions' | 'history' | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if ('Notification' in window) {
@@ -17,23 +19,27 @@ export function Settings() {
   const formattedSize = (totalDownloadSize / (1024 * 1024)).toFixed(1);
 
   const handleClearDownloads = async () => {
-    if (confirm('Tem certeza que deseja apagar todos os downloads?')) {
-      for (const download of downloads) {
-        await deleteDownloadedEpisode(download.id, download.audioUrl);
-      }
-      await clearDownloads();
+    for (const download of downloads) {
+      await deleteDownloadedEpisode(download.id, download.audioUrl);
     }
+    await clearDownloads();
+    setConfirming(null);
   };
 
   const handleClearSubscriptions = async () => {
-    if (confirm('Tem certeza que deseja remover todas as inscrições?')) {
-      await clearSubscriptions();
-    }
+    await clearSubscriptions();
+    setConfirming(null);
+  };
+
+  const handleClearHistory = async () => {
+    await clearHistory();
+    setConfirming(null);
   };
 
   const requestNotificationPermission = async () => {
     if (!('Notification' in window)) {
-      alert('Este navegador não suporta notificações.');
+      setError('Este navegador não suporta notificações.');
+      setTimeout(() => setError(null), 3000);
       return;
     }
     const permission = await Notification.requestPermission();
@@ -69,7 +75,8 @@ export function Settings() {
         }
       });
     } else {
-      alert('Por favor, ative as notificações primeiro.');
+      setError('Por favor, ative as notificações primeiro.');
+      setTimeout(() => setError(null), 3000);
     }
   };
 
@@ -78,6 +85,12 @@ export function Settings() {
       <div className="pt-safe pb-6">
         <h1 className="text-3xl font-bold tracking-tight">Configurações</h1>
       </div>
+
+      {error && (
+        <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-sm animate-in fade-in slide-in-from-top-4 duration-300">
+          {error}
+        </div>
+      )}
 
       <div className="space-y-6">
         {/* Notifications Section */}
@@ -126,9 +139,16 @@ export function Settings() {
               <div className="flex items-center gap-4">
                 <span className="text-zinc-400 font-mono text-sm">{formattedSize} MB</span>
                 {downloads.length > 0 && (
-                  <button onClick={handleClearDownloads} className="text-red-400 hover:text-red-300 p-2 -m-2">
-                    <Trash2 size={18} />
-                  </button>
+                  confirming === 'downloads' ? (
+                    <div className="flex items-center gap-1 bg-zinc-800 rounded-lg p-1 border border-white/5 animate-in fade-in zoom-in duration-200">
+                      <button onClick={handleClearDownloads} className="p-1 text-red-400 hover:bg-red-400/10 rounded-md"><Check size={16} /></button>
+                      <button onClick={() => setConfirming(null)} className="p-1 text-zinc-500 hover:bg-zinc-700 rounded-md"><X size={16} /></button>
+                    </div>
+                  ) : (
+                    <button onClick={() => setConfirming('downloads')} className="text-red-400 hover:text-red-300 p-2 -m-2">
+                      <Trash2 size={18} />
+                    </button>
+                  )
                 )}
               </div>
             </div>
@@ -140,9 +160,37 @@ export function Settings() {
               <div className="flex items-center gap-4">
                 <span className="text-zinc-400 font-mono text-sm">{subscriptions.length}</span>
                 {subscriptions.length > 0 && (
-                  <button onClick={handleClearSubscriptions} className="text-red-400 hover:text-red-300 p-2 -m-2">
-                    <Trash2 size={18} />
-                  </button>
+                  confirming === 'subscriptions' ? (
+                    <div className="flex items-center gap-1 bg-zinc-800 rounded-lg p-1 border border-white/5 animate-in fade-in zoom-in duration-200">
+                      <button onClick={handleClearSubscriptions} className="p-1 text-red-400 hover:bg-red-400/10 rounded-md"><Check size={16} /></button>
+                      <button onClick={() => setConfirming(null)} className="p-1 text-zinc-500 hover:bg-zinc-700 rounded-md"><X size={16} /></button>
+                    </div>
+                  ) : (
+                    <button onClick={() => setConfirming('subscriptions')} className="text-red-400 hover:text-red-300 p-2 -m-2">
+                      <Trash2 size={18} />
+                    </button>
+                  )
+                )}
+              </div>
+            </div>
+            <div className="flex items-center justify-between p-4">
+              <div className="flex items-center gap-3">
+                <History className="text-zinc-500" size={20} />
+                <span className="font-medium">Histórico</span>
+              </div>
+              <div className="flex items-center gap-4">
+                <span className="text-zinc-400 font-mono text-sm">{history.length}</span>
+                {history.length > 0 && (
+                  confirming === 'history' ? (
+                    <div className="flex items-center gap-1 bg-zinc-800 rounded-lg p-1 border border-white/5 animate-in fade-in zoom-in duration-200">
+                      <button onClick={handleClearHistory} className="p-1 text-red-400 hover:bg-red-400/10 rounded-md"><Check size={16} /></button>
+                      <button onClick={() => setConfirming(null)} className="p-1 text-zinc-500 hover:bg-zinc-700 rounded-md"><X size={16} /></button>
+                    </div>
+                  ) : (
+                    <button onClick={() => setConfirming('history')} className="text-red-400 hover:text-red-300 p-2 -m-2">
+                      <Trash2 size={18} />
+                    </button>
+                  )
                 )}
               </div>
             </div>
