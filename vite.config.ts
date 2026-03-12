@@ -16,8 +16,8 @@ export default defineConfig(({mode}) => {
           name: 'Podcast App',
           short_name: 'Podcast',
           description: 'PWA de podcast com notificações de novos episódios.',
-          theme_color: '#1e1b4b',
-          background_color: '#1e1b4b',
+          theme_color: '#09090b',
+          background_color: '#09090b',
           display: 'standalone',
           icons: [
             {
