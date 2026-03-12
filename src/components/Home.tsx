@@ -1,14 +1,22 @@
 import { useEffect } from 'react';
 import { useStore } from '../store';
-import { Podcast } from '../types';
+import { Podcast, Episode } from '../types';
 import { getPodcastFeed } from '../services/api';
+import { downloadEpisode } from '../services/downloader';
 
 interface HomeProps {
   onSelectPodcast: (podcast: Podcast) => void;
 }
 
 export function Home({ onSelectPodcast }: HomeProps) {
-  const { subscriptions, podcastLastViewed, podcastLatestEpisode, setPodcastLatestEpisode } = useStore();
+  const { 
+    subscriptions, 
+    podcastLastViewed, 
+    podcastLatestEpisode, 
+    setPodcastLatestEpisode,
+    settings,
+    downloads
+  } = useStore();
 
   useEffect(() => {
     // Check for new episodes in the background
@@ -16,10 +24,38 @@ export function Home({ onSelectPodcast }: HomeProps) {
       await Promise.all(subscriptions.map(async (podcast) => {
         try {
           const feed = await getPodcastFeed(podcast.feedUrl);
-          if (feed.items && feed.items.length > 0 && feed.items[0].pubDate) {
-            const latestDate = new Date(feed.items[0].pubDate).getTime();
-            if (!isNaN(latestDate)) {
+          if (feed.items && feed.items.length > 0) {
+            const latestItem = feed.items[0];
+            const latestDate = latestItem.pubDate ? new Date(latestItem.pubDate).getTime() : 0;
+            
+            if (!isNaN(latestDate) && latestDate > 0) {
+              const prevLatest = podcastLatestEpisode[podcast.collectionId] || 0;
               setPodcastLatestEpisode(podcast.collectionId, latestDate);
+
+              // Auto-download logic
+              if (settings.autoDownload && latestDate > prevLatest) {
+                const isDownloaded = downloads.some(d => d.audioUrl === latestItem.enclosure?.url);
+                if (!isDownloaded) {
+                  // Map feed item to Episode type
+                  const episode: Episode = {
+                    id: latestItem.guid || latestItem.link || latestItem.title,
+                    title: latestItem.title,
+                    pubDate: latestItem.pubDate,
+                    description: latestItem.contentSnippet || latestItem.content || latestItem['itunes:summary'] || '',
+                    audioUrl: latestItem.enclosure?.url || '',
+                    duration: latestItem['itunes:duration'],
+                    podcastId: podcast.collectionId,
+                    podcastName: podcast.collectionName,
+                    podcastArtwork: podcast.artworkUrl600,
+                    episodeArtwork: latestItem['itunes:image']?.$.href || latestItem['itunes:image'] || latestItem.itunes?.image || podcast.artworkUrl600
+                  };
+                  
+                  if (episode.audioUrl) {
+                    console.log(`Auto-downloading: ${episode.title}`);
+                    downloadEpisode(episode).catch(err => console.error('Auto-download failed', err));
+                  }
+                }
+              }
             }
           }
         } catch (error) {
@@ -29,7 +65,7 @@ export function Home({ onSelectPodcast }: HomeProps) {
     };
 
     checkNewEpisodes();
-  }, [subscriptions, setPodcastLatestEpisode]);
+  }, [subscriptions, setPodcastLatestEpisode, settings.autoDownload, downloads]);
 
   return (
     <div className="p-4 pb-24 min-h-screen bg-zinc-950 text-zinc-100">

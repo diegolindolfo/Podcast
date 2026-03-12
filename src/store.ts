@@ -18,6 +18,11 @@ interface PlayerState {
   accentColor: string;
   podcastLastViewed: Record<number, number>;
   podcastLatestEpisode: Record<number, number>;
+  settings: {
+    autoDownload: boolean;
+    autoDelete: boolean;
+  };
+  finishedAt: Record<string, number>;
   
   setCurrentEpisode: (episode: Episode | null) => Promise<void>;
   setIsPlaying: (isPlaying: boolean) => void;
@@ -52,6 +57,10 @@ interface PlayerState {
   setPodcastLatestEpisode: (podcastId: number, timestamp: number) => Promise<void>;
   loadPodcastTimestamps: () => Promise<void>;
   loadCurrentEpisode: () => Promise<void>;
+  updateSettings: (settings: Partial<PlayerState['settings']>) => Promise<void>;
+  loadSettings: () => Promise<void>;
+  markEpisodeFinished: (episodeId: string) => Promise<void>;
+  loadFinishedAt: () => Promise<void>;
 }
 
 export const useStore = create<PlayerState>((setStore, getStore) => ({
@@ -70,6 +79,11 @@ export const useStore = create<PlayerState>((setStore, getStore) => ({
   accentColor: '#10b981',
   podcastLastViewed: {},
   podcastLatestEpisode: {},
+  settings: {
+    autoDownload: false,
+    autoDelete: false,
+  },
+  finishedAt: {},
 
   setCurrentEpisode: async (episode) => {
     await set('currentEpisode', episode);
@@ -200,5 +214,29 @@ export const useStore = create<PlayerState>((setStore, getStore) => ({
   loadCurrentEpisode: async () => {
     const episode = await get<Episode>('currentEpisode') || null;
     setStore({ currentEpisode: episode });
+  },
+
+  updateSettings: async (newSettings) => {
+    const current = getStore().settings;
+    const updated = { ...current, ...newSettings };
+    await set('settings', updated);
+    setStore({ settings: updated });
+  },
+
+  loadSettings: async () => {
+    const settings = await get<PlayerState['settings']>('settings') || { autoDownload: false, autoDelete: false };
+    setStore({ settings });
+  },
+
+  markEpisodeFinished: async (episodeId) => {
+    const current = getStore().finishedAt;
+    const updated = { ...current, [episodeId]: Date.now() };
+    await set('finishedAt', updated);
+    setStore({ finishedAt: updated });
+  },
+
+  loadFinishedAt: async () => {
+    const finishedAt = await get<Record<string, number>>('finishedAt') || {};
+    setStore({ finishedAt });
   }
 }));

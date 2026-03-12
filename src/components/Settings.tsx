@@ -1,10 +1,20 @@
 import { useStore } from '../store';
-import { Settings as SettingsIcon, Database, Info, Moon, Trash2, Bell, BellRing, History, Check, X } from 'lucide-react';
+import { Settings as SettingsIcon, Database, Info, Moon, Trash2, Bell, BellRing, History, Check, X, Download, Zap } from 'lucide-react';
 import { deleteDownloadedEpisode } from '../services/downloader';
 import { useState, useEffect } from 'react';
+import { clsx } from 'clsx';
 
 export function Settings() {
-  const { downloads, subscriptions, history, clearSubscriptions, clearDownloads, clearHistory } = useStore();
+  const { 
+    downloads, 
+    subscriptions, 
+    history, 
+    clearSubscriptions, 
+    clearDownloads, 
+    clearHistory,
+    settings,
+    updateSettings
+  } = useStore();
   const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>('default');
   const [confirming, setConfirming] = useState<'downloads' | 'subscriptions' | 'history' | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -80,6 +90,21 @@ export function Settings() {
     }
   };
 
+  const Toggle = ({ enabled, onToggle }: { enabled: boolean, onToggle: () => void }) => (
+    <button 
+      onClick={onToggle}
+      className={clsx(
+        "w-10 h-6 rounded-full transition-colors relative",
+        enabled ? "bg-accent" : "bg-zinc-700"
+      )}
+    >
+      <div className={clsx(
+        "absolute top-1 w-4 h-4 bg-white rounded-full transition-all",
+        enabled ? "left-5" : "left-1"
+      )} />
+    </button>
+  );
+
   return (
     <div className="p-4 pb-24 min-h-screen bg-zinc-950 text-zinc-100">
       <div className="pt-safe pb-6">
@@ -93,6 +118,39 @@ export function Settings() {
       )}
 
       <div className="space-y-6">
+        {/* Intelligent Downloads Section */}
+        <section>
+          <h2 className="text-sm font-semibold tracking-widest uppercase text-zinc-500 mb-4 px-2">Gerenciamento Inteligente</h2>
+          <div className="bg-zinc-900 rounded-2xl overflow-hidden divide-y divide-zinc-800/50">
+            <div className="flex items-center justify-between p-4">
+              <div className="flex items-center gap-3">
+                <Download className={settings.autoDownload ? 'text-accent' : 'text-zinc-500'} size={20} />
+                <div>
+                  <span className="font-medium block">Auto-download</span>
+                  <span className="text-[10px] text-zinc-500">Baixar novos episódios automaticamente</span>
+                </div>
+              </div>
+              <Toggle 
+                enabled={settings.autoDownload} 
+                onToggle={() => updateSettings({ autoDownload: !settings.autoDownload })} 
+              />
+            </div>
+            <div className="flex items-center justify-between p-4">
+              <div className="flex items-center gap-3">
+                <Zap className={settings.autoDelete ? 'text-accent' : 'text-zinc-500'} size={20} />
+                <div>
+                  <span className="font-medium block">Auto-delete</span>
+                  <span className="text-[10px] text-zinc-500">Apagar episódios ouvidos após 24h</span>
+                </div>
+              </div>
+              <Toggle 
+                enabled={settings.autoDelete} 
+                onToggle={() => updateSettings({ autoDelete: !settings.autoDelete })} 
+              />
+            </div>
+          </div>
+        </section>
+
         {/* Notifications Section */}
         <section>
           <h2 className="text-sm font-semibold tracking-widest uppercase text-zinc-500 mb-4 px-2">Notificações</h2>

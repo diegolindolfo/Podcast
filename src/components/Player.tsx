@@ -300,7 +300,10 @@ export function Player() {
         onLoadedMetadata={handleLoadedMetadata}
         onEnded={() => {
           setIsPlaying(false);
-          if (currentEpisode) saveEpisodeProgress(currentEpisode.id, 0);
+          if (currentEpisode) {
+            saveEpisodeProgress(currentEpisode.id, 0);
+            useStore.getState().markEpisodeFinished(currentEpisode.id);
+          }
         }}
       />
 
