@@ -73,7 +73,11 @@ export function Downloads() {
                   <div className="flex items-center gap-2 text-[10px] font-mono text-zinc-500 uppercase tracking-wider">
                     <span>{formatSize(episode.size)}</span>
                     <span>•</span>
-                    <span>{format(new Date(episode.downloadedAt), "d 'de' MMM.", { locale: ptBR })}</span>
+                    <span>{(() => {
+                      const date = new Date(episode.downloadedAt);
+                      if (isNaN(date.getTime())) return 'Data Desconhecida';
+                      return format(date, "d 'de' MMM.", { locale: ptBR });
+                    })()}</span>
                   </div>
                 </div>
                 

@@ -203,7 +203,12 @@ export function PodcastDetail({ podcast, onBack }: PodcastDetailProps) {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
                         <span className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider">
-                          {episode.pubDate ? format(new Date(episode.pubDate), "d 'de' MMM.", { locale: ptBR }) : 'Data Desconhecida'}
+                          {(() => {
+                            if (!episode.pubDate) return 'Data Desconhecida';
+                            const date = new Date(episode.pubDate);
+                            if (isNaN(date.getTime())) return 'Data Desconhecida';
+                            return format(date, "d 'de' MMM.", { locale: ptBR });
+                          })()}
                         </span>
                       </div>
                       <h3 className={clsx(

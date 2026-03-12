@@ -32,6 +32,10 @@ export async function getCachedImageUrl(imageUrl: string): Promise<string> {
     const cache = await caches.open(IMAGE_CACHE_NAME);
     const response = await cache.match(imageUrl);
     if (response) {
+      // Opaque responses (from no-cors) cannot be converted to blob
+      if (response.type === 'opaque') {
+        return imageUrl;
+      }
       const blob = await response.blob();
       return URL.createObjectURL(blob);
     }
