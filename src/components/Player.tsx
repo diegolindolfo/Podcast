@@ -92,27 +92,28 @@ export function Player() {
         artist: currentEpisode.podcastName,
         album: currentEpisode.podcastName,
         artwork: [
-          { src: currentEpisode.episodeArtwork || currentEpisode.podcastArtwork, sizes: '512x512', type: 'image/jpeg' },
-          { src: currentEpisode.episodeArtwork || currentEpisode.podcastArtwork, sizes: '512x512', type: 'image/png' }
+          { src: currentEpisode.episodeArtwork || currentEpisode.podcastArtwork, sizes: '96x96', type: 'image/png' },
+          { src: currentEpisode.episodeArtwork || currentEpisode.podcastArtwork, sizes: '128x128', type: 'image/png' },
+          { src: currentEpisode.episodeArtwork || currentEpisode.podcastArtwork, sizes: '192x192', type: 'image/png' },
+          { src: currentEpisode.episodeArtwork || currentEpisode.podcastArtwork, sizes: '256x256', type: 'image/png' },
+          { src: currentEpisode.episodeArtwork || currentEpisode.podcastArtwork, sizes: '384x384', type: 'image/png' },
+          { src: currentEpisode.episodeArtwork || currentEpisode.podcastArtwork, sizes: '512x512', type: 'image/png' },
         ]
       });
 
+      const skipTime = (amount: number) => {
+        if (audioRef.current) {
+          audioRef.current.currentTime = Math.max(0, Math.min(audioRef.current.currentTime + amount, audioRef.current.duration));
+          updatePositionState();
+        }
+      };
+
       navigator.mediaSession.setActionHandler('play', () => setIsPlaying(true));
       navigator.mediaSession.setActionHandler('pause', () => setIsPlaying(false));
-      navigator.mediaSession.setActionHandler('seekbackward', (details) => {
-        const skipTime = details.seekOffset || 15;
-        if (audioRef.current) {
-          audioRef.current.currentTime = Math.max(audioRef.current.currentTime - skipTime, 0);
-          updatePositionState();
-        }
-      });
-      navigator.mediaSession.setActionHandler('seekforward', (details) => {
-        const skipTime = details.seekOffset || 30;
-        if (audioRef.current) {
-          audioRef.current.currentTime = Math.min(audioRef.current.currentTime + skipTime, audioRef.current.duration);
-          updatePositionState();
-        }
-      });
+      navigator.mediaSession.setActionHandler('seekbackward', (details) => skipTime(-(details.seekOffset || 15)));
+      navigator.mediaSession.setActionHandler('seekforward', (details) => skipTime(details.seekOffset || 30));
+      navigator.mediaSession.setActionHandler('previoustrack', () => skipTime(-15));
+      navigator.mediaSession.setActionHandler('nexttrack', () => skipTime(30));
 
       try {
         navigator.mediaSession.setActionHandler('seekto', (details) => {
@@ -122,7 +123,7 @@ export function Player() {
           }
         });
       } catch (e) {
-        // seekto not supported
+        console.warn('MediaSession seekto not supported');
       }
 
       try {
@@ -131,21 +132,24 @@ export function Player() {
           if (audioRef.current) audioRef.current.currentTime = 0;
         });
       } catch (e) {
-        // stop not supported
+        console.warn('MediaSession stop not supported');
       }
     }
   }, [currentEpisode, setIsPlaying]);
 
   const updatePositionState = () => {
-    if ('mediaSession' in navigator && 'setPositionState' in navigator.mediaSession && audioRef.current && !isNaN(audioRef.current.duration) && isFinite(audioRef.current.duration)) {
-      try {
-        navigator.mediaSession.setPositionState({
-          duration: audioRef.current.duration,
-          playbackRate: audioRef.current.playbackRate,
-          position: audioRef.current.currentTime,
-        });
-      } catch (e) {
-        console.error('Error updating position state', e);
+    if ('mediaSession' in navigator && 'setPositionState' in navigator.mediaSession && audioRef.current) {
+      const { duration, playbackRate, currentTime } = audioRef.current;
+      if (!isNaN(duration) && isFinite(duration) && !isNaN(currentTime)) {
+        try {
+          navigator.mediaSession.setPositionState({
+            duration: duration,
+            playbackRate: playbackRate,
+            position: currentTime,
+          });
+        } catch (e) {
+          console.error('Error updating position state', e);
+        }
       }
     }
   };

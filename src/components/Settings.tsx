@@ -48,7 +48,7 @@ export function Settings() {
     if (permission === 'granted') {
       new Notification('Notificações Ativadas!', {
         body: 'Você receberá avisos sobre novos episódios.',
-        icon: '/icon.svg'
+        icon: 'https://images.icon-icons.com/2642/PNG/512/google_podcast_logo_icon_159336.png'
       });
     }
   };
@@ -59,8 +59,8 @@ export function Settings() {
       navigator.serviceWorker.getRegistration().then(reg => {
         const options = {
           body: 'Um novo episódio do seu podcast favorito acabou de sair!',
-          icon: '/icon.svg',
-          badge: '/icon.svg',
+          icon: 'https://images.icon-icons.com/2642/PNG/512/google_podcast_logo_icon_159336.png',
+          badge: 'https://images.icon-icons.com/2642/PNG/512/google_podcast_logo_icon_159336.png',
           vibrate: [100, 50, 100],
           data: {
             dateOfArrival: Date.now(),

@@ -26,47 +26,7 @@ export function Search({ onSelectPodcast }: SearchProps) {
   const [results, setResults] = useState<Podcast[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<{id: string, name: string} | null>(null);
-  const [suggestions, setSuggestions] = useState<Podcast[]>([]);
-  const { listenedPodcasts, subscriptions } = useStore();
-
-  useEffect(() => {
-    const fetchSuggestions = async () => {
-      if (listenedPodcasts.length === 0) return;
-      
-      // Extract all genre IDs from listened podcasts
-      const allGenres = listenedPodcasts.flatMap(p => p.genreIds || []);
-      
-      // Filter out generic genres like '26' (Podcasts)
-      const specificGenres = allGenres.filter(g => g !== '26');
-      
-      if (specificGenres.length === 0) return;
-      
-      // Find the most frequent genre
-      const genreCounts = specificGenres.reduce((acc, genre) => {
-        acc[genre] = (acc[genre] || 0) + 1;
-        return acc;
-      }, {} as Record<string, number>);
-      
-      const topGenre = Object.keys(genreCounts).sort((a, b) => genreCounts[b] - genreCounts[a])[0];
-      
-      try {
-        const topPodcasts = await getTopPodcasts(topGenre);
-        
-        // Filter out podcasts the user is already subscribed to or has listened to
-        const knownIds = new Set([
-          ...subscriptions.map(s => s.collectionId),
-          ...listenedPodcasts.map(l => l.collectionId)
-        ]);
-        
-        const newSuggestions = topPodcasts.filter(p => !knownIds.has(p.collectionId)).slice(0, 10);
-        setSuggestions(newSuggestions);
-      } catch (error) {
-        console.error('Failed to fetch suggestions', error);
-      }
-    };
-    
-    fetchSuggestions();
-  }, [listenedPodcasts, subscriptions]);
+  const { subscriptions } = useStore();
 
   useEffect(() => {
     const delayDebounceFn = setTimeout(async () => {
@@ -141,35 +101,6 @@ export function Search({ onSelectPodcast }: SearchProps) {
 
       {!loading && query.length === 0 && !selectedCategory && (
         <div className="mt-6 flex flex-col gap-8">
-          {suggestions.length > 0 && (
-            <div>
-              <h2 className="text-xl font-bold mb-4">Sugestões para você</h2>
-              <div className="flex overflow-x-auto pb-4 -mx-4 px-4 gap-4 snap-x scrollbar-hide">
-                {suggestions.map((podcast) => (
-                  <button
-                    key={podcast.collectionId}
-                    onClick={() => onSelectPodcast(podcast)}
-                    className="text-left group flex flex-col min-w-[140px] max-w-[140px] snap-start"
-                  >
-                    <div className="relative aspect-square rounded-xl overflow-hidden bg-zinc-900 mb-2 shadow-lg shadow-black/40">
-                      <img
-                        src={podcast.artworkUrl600}
-                        alt={podcast.collectionName}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                        loading="lazy"
-                        referrerPolicy="no-referrer"
-                      />
-                    </div>
-                    <h3 className="font-semibold text-sm line-clamp-2 leading-tight group-hover:text-accent transition-colors">
-                      {podcast.collectionName}
-                    </h3>
-                    <p className="text-xs text-zinc-500 truncate mt-1">{podcast.artistName}</p>
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
           <div>
             <h2 className="text-xl font-bold mb-4">Explorar Categorias</h2>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">

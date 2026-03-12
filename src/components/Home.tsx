@@ -13,7 +13,7 @@ export function Home({ onSelectPodcast }: HomeProps) {
   useEffect(() => {
     // Check for new episodes in the background
     const checkNewEpisodes = async () => {
-      for (const podcast of subscriptions) {
+      await Promise.all(subscriptions.map(async (podcast) => {
         try {
           const feed = await getPodcastFeed(podcast.feedUrl);
           if (feed.items && feed.items.length > 0 && feed.items[0].pubDate) {
@@ -25,7 +25,7 @@ export function Home({ onSelectPodcast }: HomeProps) {
         } catch (error) {
           console.error(`Failed to check new episodes for ${podcast.collectionName}`, error);
         }
-      }
+      }));
     };
 
     checkNewEpisodes();
@@ -69,7 +69,10 @@ export function Home({ onSelectPodcast }: HomeProps) {
                     referrerPolicy="no-referrer"
                   />
                   {hasNewEpisode && (
-                    <div className="absolute top-2 right-2 w-3 h-3 bg-accent rounded-full border-2 border-zinc-900 shadow-sm animate-pulse" />
+                    <div className="absolute top-2 right-2 flex items-center gap-1 bg-accent text-zinc-950 text-[10px] font-bold px-1.5 py-0.5 rounded-full shadow-lg animate-pulse">
+                      <div className="w-1.5 h-1.5 bg-zinc-950 rounded-full" />
+                      NOVO
+                    </div>
                   )}
                 </div>
                 <h3 className="font-semibold text-sm line-clamp-2 leading-tight group-hover:text-accent transition-colors">

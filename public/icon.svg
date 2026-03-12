@@ -1,51 +1,15 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
-                        <defs>
-                            <!-- Gradiente mais rico e angulado -->
-                            <linearGradient id="modernBg" x1="10%" y1="0%" x2="90%" y2="100%">
-                                <stop offset="0%" stop-color="#4F46E5"></stop>   <!-- Deep Indigo -->
-                                <stop offset="50%" stop-color="#9333EA"></stop>  <!-- Vibrant Purple -->
-                                <stop offset="100%" stop-color="#F43F5E"></stop> <!-- Rose -->
-                            </linearGradient>
-
-                            <!-- Sombra suave para o efeito Glass/3D -->
-                            <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
-                                <feDropShadow dx="0" dy="16" stdDeviation="24" flood-color="#000000" flood-opacity="0.25"></feDropShadow>
-                            </filter>
-
-                            <!-- Gradiente sutil para o corpo do microfone dar ilusão de volume -->
-                            <linearGradient id="micBody" x1="0%" y1="0%" x2="100%" y2="100%">
-                                <stop offset="0%" stop-color="#ffffff"></stop>
-                                <stop offset="100%" stop-color="#e2e8f0"></stop>
-                            </linearGradient>
-                        </defs>
-
-                        <!-- Fundo -->
-                        <rect width="512" height="512" rx="112" fill="url(#modernBg)"></rect>
-
-                        <!-- Elementos decorativos (Brilhos de fundo) -->
-                        <circle cx="100" cy="100" r="160" fill="#ffffff" opacity="0.1" filter="blur(40px)"></circle>
-                        <circle cx="400" cy="400" r="160" fill="#000000" opacity="0.1" filter="blur(40px)"></circle>
-
-                        <!-- Ícone agrupado com sombra -->
-                        <g filter="url(#shadow)">
-                            <!-- FONES DE OUVIDO -->
-                            <!-- Arco superior -->
-                            <path d="M 152 240 v -32 a 104 104 0 0 1 208 0 v 32" fill="none" stroke="#ffffff" stroke-width="20" stroke-linecap="round"></path>
-                            <!-- Almofadas (Earpads) -->
-                            <rect x="136" y="224" width="32" height="80" rx="16" fill="#ffffff"></rect>
-                            <rect x="344" y="224" width="32" height="80" rx="16" fill="#ffffff"></rect>
-
-                            <!-- MICROFONE -->
-                            <!-- Corpo/Cápsula -->
-                            <rect x="224" y="184" width="64" height="120" rx="32" fill="url(#micBody)"></rect>
-                            <!-- Detalhe da grade/brilho no microfone -->
-                            <rect x="240" y="200" width="32" height="88" rx="16" fill="#ffffff" opacity="0.6"></rect>
-
-                            <!-- Suporte em U -->
-                            <path d="M 184 262 v 42 a 72 72 0 0 0 144 0 v -42" fill="none" stroke="#ffffff" stroke-width="20" stroke-linecap="round"></path>
-                            <!-- Haste -->
-                            <path d="M 256 376 v 48" fill="none" stroke="#ffffff" stroke-width="20" stroke-linecap="round"></path>
-                            <!-- Base -->
-                            <path d="M 208 424 h 96" fill="none" stroke="#ffffff" stroke-width="20" stroke-linecap="round"></path>
-                        </g>
-                    </svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3b82f6" />
+      <stop offset="50%" stop-color="#8b5cf6" />
+      <stop offset="100%" stop-color="#ec4899" />
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="128" fill="url(#bg)" />
+  <path d="M256 128a128 128 0 0 0-128 128v64a32 32 0 0 0 64 0v-64a64 64 0 0 1 128 0v64a32 32 0 0 0 64 0v-64a128 128 0 0 0-128-128z" fill="#ffffff" />
+  <rect x="224" y="224" width="64" height="128" rx="32" fill="#ffffff" />
+  <path d="M192 320v32a64 64 0 0 0 128 0v-32" fill="none" stroke="#ffffff" stroke-width="32" stroke-linecap="round" />
+  <path d="M256 384v64" fill="none" stroke="#ffffff" stroke-width="32" stroke-linecap="round" />
+  <path d="M208 448h96" fill="none" stroke="#ffffff" stroke-width="32" stroke-linecap="round" />
+</svg>
