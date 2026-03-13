@@ -1,23 +1,20 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 @import "tailwindcss";
 
 @theme {
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
-  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
-  --color-accent: var(--app-accent, #d946ef);
-  --color-accent-gradient: var(--app-accent-gradient);
+  --color-accent: var(--app-accent, #8b5cf6);
   --color-bg-dark: #09090b;
   --color-bg-card: #18181b;
 }
 
 :root {
-  --app-accent: #d946ef;
-  --app-accent-gradient: linear-gradient(135deg, #06b6d4, #8b5cf6, #d946ef, #f97316);
+  --app-accent: #8b5cf6;
 }
 
 @layer base {
   body {
-    @apply bg-zinc-950 text-zinc-100 antialiased overflow-x-hidden selection:bg-accent/30 selection:text-white;
+    @apply bg-zinc-950 text-zinc-100 antialiased overflow-x-hidden;
     -webkit-tap-highlight-color: transparent;
   }
 
@@ -32,5 +29,9 @@
   }
   .pt-safe {
     padding-top: env(safe-area-inset-top, 1rem);
+  }
+  
+  .glass {
+    @apply bg-zinc-950/80 backdrop-blur-md;
   }
 }

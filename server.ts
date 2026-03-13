@@ -33,8 +33,29 @@ async function startServer() {
     try {
       const { url } = req.query;
       if (!url) return res.status(400).json({ error: 'URL is required' });
-      const feed = await parser.parseURL(url as string);
-      res.json(feed);
+      
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 30000); // 30s timeout
+
+      try {
+        const response = await fetch(url as string, {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+            'Accept': 'application/rss+xml, application/xml, text/xml, */*'
+          },
+          signal: controller.signal
+        });
+
+        if (!response.ok) {
+          throw new Error(`Failed to fetch feed: ${response.status} ${response.statusText}`);
+        }
+
+        const xml = await response.text();
+        const feed = await parser.parseString(xml.trim());
+        res.json(feed);
+      } finally {
+        clearTimeout(timeout);
+      }
     } catch (error) {
       console.error('Feed error:', error);
       res.status(500).json({ error: 'Failed to parse feed' });

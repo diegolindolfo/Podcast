@@ -37,8 +37,8 @@ interface SectionProps {
 
 const Section = ({ title, children }: SectionProps) => (
   <section>
-    <h2 className="text-[10px] font-black tracking-[0.2em] uppercase text-zinc-600 mb-4 px-2">{title}</h2>
-    <div className="bg-zinc-900/50 rounded-3xl overflow-hidden border border-white/5 shadow-xl">
+    <h2 className="text-xs font-bold uppercase text-zinc-500 mb-3 px-1">{title}</h2>
+    <div className="bg-zinc-900 rounded-2xl overflow-hidden border border-white/5">
       {children}
     </div>
   </section>
@@ -56,28 +56,28 @@ interface SettingItemProps {
 const SettingItem = ({ icon, title, subtitle, children, active, onClick }: SettingItemProps) => (
   <div 
     className={clsx(
-      "flex items-center justify-between p-5 transition-colors",
-      onClick ? "cursor-pointer hover:bg-zinc-900/80" : ""
+      "flex items-center justify-between p-4 transition-colors",
+      onClick ? "cursor-pointer hover:bg-zinc-800" : ""
     )}
     onClick={onClick}
   >
-    <div className="flex items-center gap-4">
+    <div className="flex items-center gap-3">
       <div className={clsx(
-        "p-2.5 rounded-xl transition-colors",
+        "p-2 rounded-lg transition-colors",
         active ? "bg-accent/10 text-accent" : "bg-zinc-800 text-zinc-500"
       )}>
         {icon}
       </div>
       <div>
-        <span className="font-bold block text-zinc-100">{title}</span>
-        {subtitle && <span className="text-xs text-zinc-500 font-medium">{subtitle}</span>}
+        <span className="font-semibold block text-zinc-100 text-sm">{title}</span>
+        {subtitle && <span className="text-xs text-zinc-500">{subtitle}</span>}
       </div>
     </div>
     {children}
   </div>
 );
 
-const Divider = () => <div className="h-px bg-white/5 mx-5" />;
+const Divider = () => <div className="h-px bg-white/5 mx-4" />;
 
 export function Settings() {
   const { 
@@ -148,7 +148,7 @@ export function Settings() {
       await clearSubscriptions();
       await clearHistory();
       await updateSettings({ autoDownload: false, autoDelete: false });
-      setAccentColor('#10b981');
+      setAccentColor('#8b5cf6');
       setConfirming(null);
       showMessage('Todas as configurações foram resetadas');
     } catch (e) {
@@ -197,13 +197,15 @@ export function Settings() {
     <button 
       onClick={onToggle}
       className={clsx(
-        "w-11 h-6 rounded-full transition-all relative",
-        enabled ? "bg-accent shadow-[0_0_10px_rgba(var(--color-accent),0.3)]" : "bg-zinc-800"
+        "w-10 h-5 rounded-full transition-all relative",
+        enabled ? "bg-accent" : "bg-zinc-800"
       )}
     >
-      <motion.div 
-        animate={{ x: enabled ? 20 : 2 }}
-        className="absolute top-1 w-4 h-4 bg-white rounded-full shadow-sm"
+      <div 
+        className={clsx(
+          "absolute top-1 w-3 h-3 bg-white rounded-full transition-all",
+          enabled ? "left-6" : "left-1"
+        )}
       />
     </button>
   );
@@ -220,12 +222,12 @@ export function Settings() {
           <motion.div 
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95 }}
+            exit={{ opacity: 0 }}
             className={clsx(
-              "fixed top-6 left-6 right-6 z-[60] p-4 rounded-xl shadow-2xl flex items-center gap-3 border backdrop-blur-xl",
+              "fixed top-6 left-6 right-6 z-[60] p-4 rounded-xl shadow-xl flex items-center gap-3 border backdrop-blur-lg",
               message.type === 'success' 
-                ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400" 
-                : "bg-red-500/10 border-red-500/20 text-red-400"
+                ? "bg-zinc-900 border-emerald-500/20 text-emerald-400" 
+                : "bg-zinc-900 border-red-500/20 text-red-400"
             )}
           >
             {message.type === 'success' ? <Check size={20} /> : <AlertCircle size={20} />}
@@ -234,33 +236,33 @@ export function Settings() {
         )}
       </AnimatePresence>
 
-      <div className="space-y-8 max-w-2xl mx-auto">
+      <div className="space-y-6 max-w-2xl mx-auto">
         {/* Appearance Section */}
         <Section title="Aparência">
-          <div className="p-5">
-            <div className="flex items-center gap-4 mb-6">
-              <div className="p-2.5 rounded-xl bg-accent/10 text-accent">
+          <div className="p-4">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-2 rounded-lg bg-accent/10 text-accent">
                 <Palette size={20} />
               </div>
               <div>
-                <span className="font-bold block text-zinc-100">Cor de Destaque</span>
-                <span className="text-xs text-zinc-500 font-medium">Escolha a cor principal do app</span>
+                <span className="font-semibold block text-zinc-100 text-sm">Cor de Destaque</span>
+                <span className="text-xs text-zinc-500">Escolha a cor principal do app</span>
               </div>
             </div>
             
-            <div className="grid grid-cols-6 gap-3">
+            <div className="grid grid-cols-6 gap-2">
               {ACCENT_COLORS.map((color) => (
                 <button
                   key={color.value}
                   onClick={() => setAccentColor(color.value)}
                   className={clsx(
                     "aspect-square rounded-full transition-all relative flex items-center justify-center border-2",
-                    accentColor === color.value ? "border-white scale-110 shadow-lg" : "border-transparent hover:scale-105"
+                    accentColor === color.value ? "border-white" : "border-transparent"
                   )}
                   style={{ backgroundColor: color.value }}
                   title={color.name}
                 >
-                  {accentColor === color.value && <Check size={16} className="text-white drop-shadow-md" />}
+                  {accentColor === color.value && <Check size={14} className="text-white" />}
                 </button>
               ))}
             </div>
@@ -306,10 +308,10 @@ export function Settings() {
               onClick={requestNotificationPermission}
               disabled={notificationPermission === 'granted'}
               className={clsx(
-                "text-xs px-4 py-2 rounded-xl font-bold transition-all shadow-lg",
+                "text-xs px-3 py-1.5 rounded-lg font-bold transition-all",
                 notificationPermission === 'granted' 
-                  ? "bg-accent/20 text-accent border border-accent/20" 
-                  : "bg-zinc-800 text-zinc-300 hover:bg-zinc-700 border border-white/5"
+                  ? "bg-accent/10 text-accent" 
+                  : "bg-zinc-800 text-zinc-300 hover:bg-zinc-700"
               )}
             >
               {notificationPermission === 'granted' ? 'ATIVADO' : 'ATIVAR'}
@@ -339,12 +341,12 @@ export function Settings() {
           >
             {downloads.length > 0 && (
               confirming === 'downloads' ? (
-                <motion.div initial={{ scale: 0.8 }} animate={{ scale: 1 }} className="flex items-center gap-1 bg-zinc-800 rounded-xl p-1 border border-white/10 shadow-xl">
-                  <button onClick={handleClearDownloads} className="p-2 text-red-400 hover:bg-red-400/10 rounded-lg"><Check size={18} /></button>
-                  <button onClick={() => setConfirming(null)} className="p-2 text-zinc-500 hover:bg-zinc-700 rounded-lg"><X size={18} /></button>
-                </motion.div>
+                <div className="flex items-center gap-1 bg-zinc-800 rounded-lg p-1 border border-white/5">
+                  <button onClick={handleClearDownloads} className="p-1.5 text-red-400 hover:bg-red-400/10 rounded-md"><Check size={16} /></button>
+                  <button onClick={() => setConfirming(null)} className="p-1.5 text-zinc-500 hover:bg-zinc-700 rounded-md"><X size={16} /></button>
+                </div>
               ) : (
-                <button onClick={() => setConfirming('downloads')} className="text-red-400 hover:bg-red-400/10 p-2.5 rounded-xl transition-all">
+                <button onClick={() => setConfirming('downloads')} className="text-red-400 hover:bg-red-400/10 p-2 rounded-lg transition-all">
                   <Trash2 size={20} />
                 </button>
               )
@@ -357,12 +359,12 @@ export function Settings() {
             subtitle="Limpar capas salvas"
           >
             {confirming === 'images' ? (
-              <motion.div initial={{ scale: 0.8 }} animate={{ scale: 1 }} className="flex items-center gap-1 bg-zinc-800 rounded-xl p-1 border border-white/10 shadow-xl">
-                <button onClick={handleClearImageCache} className="p-2 text-red-400 hover:bg-red-400/10 rounded-lg"><Check size={18} /></button>
-                <button onClick={() => setConfirming(null)} className="p-2 text-zinc-500 hover:bg-zinc-700 rounded-lg"><X size={18} /></button>
-              </motion.div>
+              <div className="flex items-center gap-1 bg-zinc-800 rounded-lg p-1 border border-white/5">
+                <button onClick={handleClearImageCache} className="p-1.5 text-red-400 hover:bg-red-400/10 rounded-md"><Check size={16} /></button>
+                <button onClick={() => setConfirming(null)} className="p-1.5 text-zinc-500 hover:bg-zinc-700 rounded-md"><X size={16} /></button>
+              </div>
             ) : (
-              <button onClick={() => setConfirming('images')} className="text-red-400 hover:bg-red-400/10 p-2.5 rounded-xl transition-all">
+              <button onClick={() => setConfirming('images')} className="text-red-400 hover:bg-red-400/10 p-2 rounded-lg transition-all">
                 <Trash2 size={20} />
               </button>
             )}
@@ -375,12 +377,12 @@ export function Settings() {
           >
             {subscriptions.length > 0 && (
               confirming === 'subscriptions' ? (
-                <motion.div initial={{ scale: 0.8 }} animate={{ scale: 1 }} className="flex items-center gap-1 bg-zinc-800 rounded-xl p-1 border border-white/10 shadow-xl">
-                  <button onClick={handleClearSubscriptions} className="p-2 text-red-400 hover:bg-red-400/10 rounded-lg"><Check size={18} /></button>
-                  <button onClick={() => setConfirming(null)} className="p-2 text-zinc-500 hover:bg-zinc-700 rounded-lg"><X size={18} /></button>
-                </motion.div>
+                <div className="flex items-center gap-1 bg-zinc-800 rounded-lg p-1 border border-white/5">
+                  <button onClick={handleClearSubscriptions} className="p-1.5 text-red-400 hover:bg-red-400/10 rounded-md"><Check size={16} /></button>
+                  <button onClick={() => setConfirming(null)} className="p-1.5 text-zinc-500 hover:bg-zinc-700 rounded-md"><X size={16} /></button>
+                </div>
               ) : (
-                <button onClick={() => setConfirming('subscriptions')} className="text-red-400 hover:bg-red-400/10 p-2.5 rounded-xl transition-all">
+                <button onClick={() => setConfirming('subscriptions')} className="text-red-400 hover:bg-red-400/10 p-2 rounded-lg transition-all">
                   <Trash2 size={20} />
                 </button>
               )
@@ -394,12 +396,12 @@ export function Settings() {
           >
             {history.length > 0 && (
               confirming === 'history' ? (
-                <motion.div initial={{ scale: 0.8 }} animate={{ scale: 1 }} className="flex items-center gap-1 bg-zinc-800 rounded-xl p-1 border border-white/10 shadow-xl">
-                  <button onClick={handleClearHistory} className="p-2 text-red-400 hover:bg-red-400/10 rounded-lg"><Check size={18} /></button>
-                  <button onClick={() => setConfirming(null)} className="p-2 text-zinc-500 hover:bg-zinc-700 rounded-lg"><X size={18} /></button>
-                </motion.div>
+                <div className="flex items-center gap-1 bg-zinc-800 rounded-lg p-1 border border-white/5">
+                  <button onClick={handleClearHistory} className="p-1.5 text-red-400 hover:bg-red-400/10 rounded-md"><Check size={16} /></button>
+                  <button onClick={() => setConfirming(null)} className="p-1.5 text-zinc-500 hover:bg-zinc-700 rounded-md"><X size={16} /></button>
+                </div>
               ) : (
-                <button onClick={() => setConfirming('history')} className="text-red-400 hover:bg-red-400/10 p-2.5 rounded-xl transition-all">
+                <button onClick={() => setConfirming('history')} className="text-red-400 hover:bg-red-400/10 p-2 rounded-lg transition-all">
                   <Trash2 size={20} />
                 </button>
               )
@@ -426,7 +428,7 @@ export function Settings() {
             title="Versão"
             subtitle="Podcast App Team"
           >
-            <span className="text-zinc-500 font-bold text-xs bg-zinc-800 px-3 py-1.5 rounded-xl">1.2.0</span>
+            <span className="text-zinc-500 font-bold text-xs bg-zinc-800 px-2 py-1 rounded-lg">1.2.0</span>
           </SettingItem>
         </Section>
       </div>
@@ -434,36 +436,36 @@ export function Settings() {
       {/* Confirmation Dialogs */}
       <AnimatePresence>
         {confirming && (
-          <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-4 sm:p-6">
+          <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-4">
             <motion.div 
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setConfirming(null)}
-              className="absolute inset-0 bg-black/80 backdrop-blur-sm"
+              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
             />
             <motion.div 
-              initial={{ opacity: 0, y: 100, scale: 0.95 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 100, scale: 0.95 }}
-              className="relative w-full max-w-sm bg-zinc-900 rounded-3xl p-6 shadow-2xl border border-white/10"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 20 }}
+              className="relative w-full max-w-sm bg-zinc-900 rounded-2xl p-6 shadow-2xl border border-white/5"
             >
               <div className="flex flex-col items-center text-center">
-                <div className="w-16 h-16 rounded-full bg-red-500/10 flex items-center justify-center text-red-500 mb-4">
-                  <Trash2 size={32} />
+                <div className="w-12 h-12 rounded-full bg-red-500/10 flex items-center justify-center text-red-500 mb-4">
+                  <Trash2 size={24} />
                 </div>
-                <h3 className="text-xl font-bold text-zinc-100 mb-2">Você tem certeza?</h3>
-                <p className="text-zinc-400 text-sm mb-8">
+                <h3 className="text-lg font-bold text-zinc-100 mb-2">Confirmar ação?</h3>
+                <p className="text-zinc-400 text-sm mb-6">
                   {confirming === 'subscriptions' && 'Isso removerá todas as suas inscrições permanentemente.'}
                   {confirming === 'downloads' && 'Todos os episódios baixados serão excluídos do dispositivo.'}
                   {confirming === 'history' && 'Seu histórico de reprodução será limpo.'}
-                  {confirming === 'images' && 'O cache de imagens será limpo. As capas serão baixadas novamente quando necessário.'}
-                  {confirming === 'reset' && 'Isso apagará TODOS os dados e configurações do aplicativo.'}
+                  {confirming === 'images' && 'O cache de imagens será limpo.'}
+                  {confirming === 'reset' && 'Isso apagará TODOS os dados do aplicativo.'}
                 </p>
                 <div className="grid grid-cols-2 gap-3 w-full">
                   <button 
                     onClick={() => setConfirming(null)}
-                    className="py-3 px-4 rounded-xl bg-zinc-800 text-zinc-100 font-semibold hover:bg-zinc-700 transition-colors"
+                    className="py-2.5 px-4 rounded-xl bg-zinc-800 text-zinc-100 font-semibold text-sm"
                   >
                     Cancelar
                   </button>
@@ -475,7 +477,7 @@ export function Settings() {
                       if (confirming === 'images') await handleClearImageCache();
                       if (confirming === 'reset') await handleResetAll();
                     }}
-                    className="py-3 px-4 rounded-xl bg-red-500 text-white font-semibold hover:bg-red-600 transition-colors shadow-lg shadow-red-500/20"
+                    className="py-2.5 px-4 rounded-xl bg-red-500 text-white font-semibold text-sm"
                   >
                     Confirmar
                   </button>
