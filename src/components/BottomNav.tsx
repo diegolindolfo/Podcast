@@ -16,8 +16,8 @@ export function BottomNav({ currentTab, onChange }: BottomNavProps) {
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-zinc-950/80 backdrop-blur-xl border-t border-white/5 pb-safe z-40">
-      <div className="flex justify-around items-center h-16">
+    <nav className="fixed bottom-0 left-0 right-0 glass pb-safe z-40 border-t border-white/5">
+      <div className="flex justify-around items-center h-16 max-w-lg mx-auto px-2">
         {tabs.map((tab) => {
           const Icon = tab.icon;
           const isActive = currentTab === tab.id;
@@ -26,12 +26,28 @@ export function BottomNav({ currentTab, onChange }: BottomNavProps) {
               key={tab.id}
               onClick={() => onChange(tab.id)}
               className={clsx(
-                'flex flex-col items-center justify-center w-full h-full space-y-1 transition-colors',
+                'flex flex-col items-center justify-center w-full h-full space-y-1 transition-all duration-500 relative group',
                 isActive ? 'text-accent' : 'text-zinc-500 hover:text-zinc-300'
               )}
             >
-              <Icon size={24} strokeWidth={isActive ? 2.5 : 2} />
-              <span className="text-[10px] font-medium">{tab.label}</span>
+              <div className={clsx(
+                "absolute inset-0 flex items-center justify-center opacity-0 transition-opacity duration-500",
+                isActive && "opacity-100"
+              )}>
+                <div className="w-12 h-12 bg-accent/20 rounded-full blur-xl" />
+              </div>
+              <Icon 
+                size={20} 
+                strokeWidth={isActive ? 3 : 2} 
+                className={clsx(
+                  "relative z-10 transition-transform duration-500",
+                  isActive ? "scale-110" : "group-hover:scale-110"
+                )} 
+              />
+              <span className="text-[9px] font-black tracking-[0.2em] relative z-10 uppercase">{tab.label}</span>
+              {isActive && (
+                <div className="absolute -bottom-1 w-1 h-1 bg-accent rounded-full shadow-[0_0_8px_rgba(var(--app-accent-rgb),0.8)]" />
+              )}
             </button>
           );
         })}

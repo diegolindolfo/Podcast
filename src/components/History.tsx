@@ -3,6 +3,8 @@ import { useStore } from '../store';
 import { Play, Pause, Trash2, History as HistoryIcon, X, Check } from 'lucide-react';
 import { clsx } from 'clsx';
 
+import { motion, AnimatePresence } from 'motion/react';
+
 export function History() {
   const { history, currentEpisode, isPlaying, setIsPlaying, setCurrentEpisode, clearHistory } = useStore();
   const [showConfirm, setShowConfirm] = useState(false);
@@ -17,7 +19,7 @@ export function History() {
   };
 
   return (
-    <div className="p-4 pb-24 min-h-screen bg-zinc-950 text-zinc-100">
+    <div className="p-4 pb-24 min-h-screen bg-zinc-950">
       <div className="pt-safe pb-6 flex justify-between items-end">
         <div>
           <h1 className="text-3xl font-bold tracking-tight bg-clip-text text-transparent bg-[var(--color-accent-gradient)]">Histórico</h1>
@@ -26,29 +28,33 @@ export function History() {
         {history.length > 0 && (
           <div className="flex items-center gap-2">
             {showConfirm ? (
-              <div className="flex items-center gap-1 bg-zinc-900 rounded-lg p-1 border border-white/5 animate-in fade-in zoom-in duration-200">
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.9, x: 10 }}
+                animate={{ opacity: 1, scale: 1, x: 0 }}
+                className="flex items-center gap-1 bg-zinc-900 rounded-xl p-1 border border-white/10 shadow-xl"
+              >
                 <button 
                   onClick={() => {
                     clearHistory();
                     setShowConfirm(false);
                   }}
-                  className="p-1.5 text-red-400 hover:bg-red-400/10 rounded-md transition-colors"
+                  className="p-2 text-red-400 hover:bg-red-400/10 rounded-lg transition-colors"
                   title="Confirmar"
                 >
-                  <Check size={16} />
+                  <Check size={18} />
                 </button>
                 <button 
                   onClick={() => setShowConfirm(false)}
-                  className="p-1.5 text-zinc-500 hover:bg-zinc-800 rounded-md transition-colors"
+                  className="p-2 text-zinc-500 hover:bg-zinc-800 rounded-lg transition-colors"
                   title="Cancelar"
                 >
-                  <X size={16} />
+                  <X size={18} />
                 </button>
-              </div>
+              </motion.div>
             ) : (
               <button 
                 onClick={() => setShowConfirm(true)}
-                className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-zinc-900 text-zinc-400 hover:text-red-400 hover:bg-red-400/10 transition-all text-xs font-medium border border-white/5"
+                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-zinc-900 text-zinc-400 hover:text-red-400 hover:bg-red-400/10 transition-all text-xs font-bold border border-white/5 shadow-sm"
               >
                 <Trash2 size={14} />
                 Limpar
@@ -70,40 +76,59 @@ export function History() {
         </div>
       ) : (
         <div className="space-y-3">
-          {history.map((episode) => {
-            const isPlayingThis = currentEpisode?.id === episode.id && isPlaying;
-            
-            return (
-              <div key={episode.id} className="group flex gap-4 p-3 rounded-xl bg-zinc-900/30 hover:bg-zinc-900/80 transition-colors border border-zinc-800/50">
-                <img 
-                  src={episode.episodeArtwork || episode.podcastArtwork} 
-                  alt={episode.podcastName} 
-                  className="w-14 h-14 rounded-lg object-cover shadow-md"
-                  loading="lazy"
-                  referrerPolicy="no-referrer"
-                />
-                
-                <div className="flex-1 min-w-0 flex flex-col justify-center">
-                  <h3 className={clsx(
-                    "font-semibold text-sm leading-tight mb-1 truncate",
-                    currentEpisode?.id === episode.id ? "text-accent" : "text-zinc-100"
-                  )}>
-                    {episode.title}
-                  </h3>
-                  <p className="text-xs text-zinc-400 truncate">{episode.podcastName}</p>
-                </div>
-                
-                <div className="flex items-center">
-                  <button 
-                    onClick={() => handlePlay(episode)}
-                    className="w-10 h-10 rounded-full bg-zinc-800 flex items-center justify-center text-zinc-300 hover:bg-[var(--color-accent-gradient)] hover:text-white transition-all"
-                  >
-                    {isPlayingThis ? <Pause size={18} fill="currentColor" /> : <Play size={18} fill="currentColor" className="ml-1" />}
-                  </button>
-                </div>
-              </div>
-            );
-          })}
+          <AnimatePresence initial={false}>
+            {history.map((episode, index) => {
+              const isPlayingThis = currentEpisode?.id === episode.id && isPlaying;
+              
+              return (
+                <motion.div 
+                  key={episode.id}
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: index * 0.03 }}
+                  className="group flex gap-4 p-4 rounded-2xl bg-zinc-900/30 hover:bg-zinc-900/60 transition-all border border-white/5 shadow-sm"
+                >
+                  <div className="relative flex-shrink-0">
+                    <img 
+                      src={episode.episodeArtwork || episode.podcastArtwork} 
+                      alt={episode.podcastName} 
+                      className="w-14 h-14 rounded-xl object-cover shadow-lg border border-white/5"
+                      loading="lazy"
+                      referrerPolicy="no-referrer"
+                    />
+                    {isPlayingThis && (
+                      <div className="absolute inset-0 bg-accent/20 flex items-center justify-center rounded-xl">
+                        <div className="flex gap-0.5 items-end h-3">
+                          <div className="w-0.5 bg-white animate-[music-bar_0.6s_ease-in-out_infinite]" />
+                          <div className="w-0.5 bg-white animate-[music-bar_0.8s_ease-in-out_infinite]" />
+                          <div className="w-0.5 bg-white animate-[music-bar_0.7s_ease-in-out_infinite]" />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div className="flex-1 min-w-0 flex flex-col justify-center">
+                    <h3 className={clsx(
+                      "font-bold text-sm leading-tight mb-1 truncate group-hover:text-accent transition-colors",
+                      currentEpisode?.id === episode.id ? "text-accent" : "text-zinc-100"
+                    )}>
+                      {episode.title}
+                    </h3>
+                    <p className="text-xs text-zinc-500 truncate font-medium">{episode.podcastName}</p>
+                  </div>
+                  
+                  <div className="flex items-center">
+                    <button 
+                      onClick={() => handlePlay(episode)}
+                      className="w-11 h-11 rounded-full bg-zinc-800 flex items-center justify-center text-zinc-300 hover:bg-[var(--color-accent-gradient)] hover:text-white transition-all shadow-lg border border-white/5"
+                    >
+                      {isPlayingThis ? <Pause size={20} fill="currentColor" /> : <Play size={20} fill="currentColor" className="ml-1" />}
+                    </button>
+                  </div>
+                </motion.div>
+              );
+            })}
+          </AnimatePresence>
         </div>
       )}
     </div>

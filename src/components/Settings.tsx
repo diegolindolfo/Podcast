@@ -4,6 +4,8 @@ import { deleteDownloadedEpisode } from '../services/downloader';
 import { useState, useEffect } from 'react';
 import { clsx } from 'clsx';
 
+import { motion } from 'motion/react';
+
 export function Settings() {
   const { 
     downloads, 
@@ -94,40 +96,47 @@ export function Settings() {
     <button 
       onClick={onToggle}
       className={clsx(
-        "w-10 h-6 rounded-full transition-colors relative",
-        enabled ? "bg-accent" : "bg-zinc-700"
+        "w-11 h-6 rounded-full transition-all relative",
+        enabled ? "bg-accent shadow-[0_0_10px_rgba(var(--color-accent),0.3)]" : "bg-zinc-800"
       )}
     >
-      <div className={clsx(
-        "absolute top-1 w-4 h-4 bg-white rounded-full transition-all",
-        enabled ? "left-5" : "left-1"
-      )} />
+      <motion.div 
+        animate={{ x: enabled ? 20 : 2 }}
+        className="absolute top-1 w-4 h-4 bg-white rounded-full shadow-sm"
+      />
     </button>
   );
 
   return (
-    <div className="p-4 pb-24 min-h-screen bg-zinc-950 text-zinc-100">
+    <div className="p-4 pb-24 min-h-screen bg-zinc-950">
       <div className="pt-safe pb-6">
-        <h1 className="text-3xl font-bold tracking-tight">Configurações</h1>
+        <h1 className="text-3xl font-bold tracking-tight text-white">Configurações</h1>
+        <p className="text-zinc-500 text-sm mt-1">Personalize sua experiência</p>
       </div>
 
       {error && (
-        <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-sm animate-in fade-in slide-in-from-top-4 duration-300">
+        <motion.div 
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-2xl text-red-400 text-sm font-medium"
+        >
           {error}
-        </div>
+        </motion.div>
       )}
 
-      <div className="space-y-6">
+      <div className="space-y-8">
         {/* Intelligent Downloads Section */}
         <section>
-          <h2 className="text-sm font-semibold tracking-widest uppercase text-zinc-500 mb-4 px-2">Gerenciamento Inteligente</h2>
-          <div className="bg-zinc-900 rounded-2xl overflow-hidden divide-y divide-zinc-800/50">
-            <div className="flex items-center justify-between p-4">
-              <div className="flex items-center gap-3">
-                <Download className={settings.autoDownload ? 'text-accent' : 'text-zinc-500'} size={20} />
+          <h2 className="text-[10px] font-black tracking-[0.2em] uppercase text-zinc-600 mb-4 px-2">Gerenciamento Inteligente</h2>
+          <div className="bg-zinc-900/50 rounded-3xl overflow-hidden border border-white/5 shadow-xl">
+            <div className="flex items-center justify-between p-5 hover:bg-zinc-900/80 transition-colors">
+              <div className="flex items-center gap-4">
+                <div className={clsx("p-2.5 rounded-xl", settings.autoDownload ? "bg-accent/10 text-accent" : "bg-zinc-800 text-zinc-500")}>
+                  <Download size={20} />
+                </div>
                 <div>
-                  <span className="font-medium block">Auto-download</span>
-                  <span className="text-[10px] text-zinc-500">Baixar novos episódios automaticamente</span>
+                  <span className="font-bold block text-zinc-100">Auto-download</span>
+                  <span className="text-xs text-zinc-500 font-medium">Baixar novos episódios automaticamente</span>
                 </div>
               </div>
               <Toggle 
@@ -135,12 +144,15 @@ export function Settings() {
                 onToggle={() => updateSettings({ autoDownload: !settings.autoDownload })} 
               />
             </div>
-            <div className="flex items-center justify-between p-4">
-              <div className="flex items-center gap-3">
-                <Zap className={settings.autoDelete ? 'text-accent' : 'text-zinc-500'} size={20} />
+            <div className="h-px bg-white/5 mx-5" />
+            <div className="flex items-center justify-between p-5 hover:bg-zinc-900/80 transition-colors">
+              <div className="flex items-center gap-4">
+                <div className={clsx("p-2.5 rounded-xl", settings.autoDelete ? "bg-accent/10 text-accent" : "bg-zinc-800 text-zinc-500")}>
+                  <Zap size={20} />
+                </div>
                 <div>
-                  <span className="font-medium block">Auto-delete</span>
-                  <span className="text-[10px] text-zinc-500">Apagar episódios ouvidos após 24h</span>
+                  <span className="font-bold block text-zinc-100">Auto-delete</span>
+                  <span className="text-xs text-zinc-500 font-medium">Apagar episódios ouvidos após 24h</span>
                 </div>
               </div>
               <Toggle 
@@ -153,100 +165,120 @@ export function Settings() {
 
         {/* Notifications Section */}
         <section>
-          <h2 className="text-sm font-semibold tracking-widest uppercase text-zinc-500 mb-4 px-2">Notificações</h2>
-          <div className="bg-zinc-900 rounded-2xl overflow-hidden divide-y divide-zinc-800/50">
-            <div className="flex items-center justify-between p-4">
-              <div className="flex items-center gap-3">
-                <Bell className={notificationPermission === 'granted' ? 'text-accent' : 'text-zinc-500'} size={20} />
-                <span className="font-medium">Novos Episódios</span>
+          <h2 className="text-[10px] font-black tracking-[0.2em] uppercase text-zinc-600 mb-4 px-2">Notificações</h2>
+          <div className="bg-zinc-900/50 rounded-3xl overflow-hidden border border-white/5 shadow-xl">
+            <div className="flex items-center justify-between p-5">
+              <div className="flex items-center gap-4">
+                <div className={clsx("p-2.5 rounded-xl", notificationPermission === 'granted' ? "bg-accent/10 text-accent" : "bg-zinc-800 text-zinc-500")}>
+                  <Bell size={20} />
+                </div>
+                <div>
+                  <span className="font-bold block text-zinc-100">Novos Episódios</span>
+                  <span className="text-xs text-zinc-500 font-medium">Avisar quando houver novidades</span>
+                </div>
               </div>
               <button 
                 onClick={requestNotificationPermission}
                 disabled={notificationPermission === 'granted'}
-                className={`text-sm px-3 py-1.5 rounded-full font-medium ${
+                className={clsx(
+                  "text-xs px-4 py-2 rounded-xl font-bold transition-all shadow-lg",
                   notificationPermission === 'granted' 
-                    ? 'bg-accent/20 text-accent' 
-                    : 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700'
-                }`}
+                    ? "bg-accent/20 text-accent border border-accent/20" 
+                    : "bg-zinc-800 text-zinc-300 hover:bg-zinc-700 border border-white/5"
+                )}
               >
-                {notificationPermission === 'granted' ? 'Ativado' : 'Ativar'}
+                {notificationPermission === 'granted' ? 'ATIVADO' : 'ATIVAR'}
               </button>
             </div>
             {notificationPermission === 'granted' && (
-              <div 
-                className="flex items-center justify-between p-4 cursor-pointer hover:bg-zinc-800/50 transition-colors"
-                onClick={simulateNewEpisode}
-              >
-                <div className="flex items-center gap-3">
-                  <BellRing className="text-zinc-400" size={20} />
-                  <span className="font-medium text-zinc-300">Testar Notificação</span>
-                </div>
-              </div>
+              <>
+                <div className="h-px bg-white/5 mx-5" />
+                <button 
+                  className="flex items-center justify-between p-5 w-full hover:bg-zinc-900/80 transition-colors text-left"
+                  onClick={simulateNewEpisode}
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="p-2.5 rounded-xl bg-zinc-800 text-zinc-400">
+                      <BellRing size={20} />
+                    </div>
+                    <span className="font-bold text-zinc-300">Testar Notificação</span>
+                  </div>
+                </button>
+              </>
             )}
           </div>
         </section>
+
         {/* Storage Section */}
         <section>
-          <h2 className="text-sm font-semibold tracking-widest uppercase text-zinc-500 mb-4 px-2">Armazenamento</h2>
-          <div className="bg-zinc-900 rounded-2xl overflow-hidden divide-y divide-zinc-800/50">
-            <div className="flex items-center justify-between p-4">
-              <div className="flex items-center gap-3">
-                <Database className="text-accent" size={20} />
-                <span className="font-medium">Áudio Baixado</span>
+          <h2 className="text-[10px] font-black tracking-[0.2em] uppercase text-zinc-600 mb-4 px-2">Armazenamento</h2>
+          <div className="bg-zinc-900/50 rounded-3xl overflow-hidden border border-white/5 shadow-xl">
+            <div className="flex items-center justify-between p-5">
+              <div className="flex items-center gap-4">
+                <div className="p-2.5 rounded-xl bg-accent/10 text-accent">
+                  <Database size={20} />
+                </div>
+                <span className="font-bold text-zinc-100">Áudio Baixado</span>
               </div>
               <div className="flex items-center gap-4">
-                <span className="text-zinc-400 font-mono text-sm">{formattedSize} MB</span>
+                <span className="text-zinc-400 font-bold text-xs bg-zinc-800 px-2 py-1 rounded-lg">{formattedSize} MB</span>
                 {downloads.length > 0 && (
                   confirming === 'downloads' ? (
-                    <div className="flex items-center gap-1 bg-zinc-800 rounded-lg p-1 border border-white/5 animate-in fade-in zoom-in duration-200">
-                      <button onClick={handleClearDownloads} className="p-1 text-red-400 hover:bg-red-400/10 rounded-md"><Check size={16} /></button>
-                      <button onClick={() => setConfirming(null)} className="p-1 text-zinc-500 hover:bg-zinc-700 rounded-md"><X size={16} /></button>
-                    </div>
+                    <motion.div initial={{ scale: 0.8 }} animate={{ scale: 1 }} className="flex items-center gap-1 bg-zinc-800 rounded-xl p-1 border border-white/10 shadow-xl">
+                      <button onClick={handleClearDownloads} className="p-2 text-red-400 hover:bg-red-400/10 rounded-lg"><Check size={18} /></button>
+                      <button onClick={() => setConfirming(null)} className="p-2 text-zinc-500 hover:bg-zinc-700 rounded-lg"><X size={18} /></button>
+                    </motion.div>
                   ) : (
-                    <button onClick={() => setConfirming('downloads')} className="text-red-400 hover:text-red-300 p-2 -m-2">
-                      <Trash2 size={18} />
+                    <button onClick={() => setConfirming('downloads')} className="text-red-400 hover:bg-red-400/10 p-2.5 rounded-xl transition-all">
+                      <Trash2 size={20} />
                     </button>
                   )
                 )}
               </div>
             </div>
-            <div className="flex items-center justify-between p-4">
-              <div className="flex items-center gap-3">
-                <SettingsIcon className="text-zinc-500" size={20} />
-                <span className="font-medium">Inscrições</span>
+            <div className="h-px bg-white/5 mx-5" />
+            <div className="flex items-center justify-between p-5">
+              <div className="flex items-center gap-4">
+                <div className="p-2.5 rounded-xl bg-zinc-800 text-zinc-500">
+                  <SettingsIcon size={20} />
+                </div>
+                <span className="font-bold text-zinc-100">Inscrições</span>
               </div>
               <div className="flex items-center gap-4">
-                <span className="text-zinc-400 font-mono text-sm">{subscriptions.length}</span>
+                <span className="text-zinc-400 font-bold text-xs bg-zinc-800 px-2 py-1 rounded-lg">{subscriptions.length}</span>
                 {subscriptions.length > 0 && (
                   confirming === 'subscriptions' ? (
-                    <div className="flex items-center gap-1 bg-zinc-800 rounded-lg p-1 border border-white/5 animate-in fade-in zoom-in duration-200">
-                      <button onClick={handleClearSubscriptions} className="p-1 text-red-400 hover:bg-red-400/10 rounded-md"><Check size={16} /></button>
-                      <button onClick={() => setConfirming(null)} className="p-1 text-zinc-500 hover:bg-zinc-700 rounded-md"><X size={16} /></button>
-                    </div>
+                    <motion.div initial={{ scale: 0.8 }} animate={{ scale: 1 }} className="flex items-center gap-1 bg-zinc-800 rounded-xl p-1 border border-white/10 shadow-xl">
+                      <button onClick={handleClearSubscriptions} className="p-2 text-red-400 hover:bg-red-400/10 rounded-lg"><Check size={18} /></button>
+                      <button onClick={() => setConfirming(null)} className="p-2 text-zinc-500 hover:bg-zinc-700 rounded-lg"><X size={18} /></button>
+                    </motion.div>
                   ) : (
-                    <button onClick={() => setConfirming('subscriptions')} className="text-red-400 hover:text-red-300 p-2 -m-2">
-                      <Trash2 size={18} />
+                    <button onClick={() => setConfirming('subscriptions')} className="text-red-400 hover:bg-red-400/10 p-2.5 rounded-xl transition-all">
+                      <Trash2 size={20} />
                     </button>
                   )
                 )}
               </div>
             </div>
-            <div className="flex items-center justify-between p-4">
-              <div className="flex items-center gap-3">
-                <History className="text-zinc-500" size={20} />
-                <span className="font-medium">Histórico</span>
+            <div className="h-px bg-white/5 mx-5" />
+            <div className="flex items-center justify-between p-5">
+              <div className="flex items-center gap-4">
+                <div className="p-2.5 rounded-xl bg-zinc-800 text-zinc-500">
+                  <History size={20} />
+                </div>
+                <span className="font-bold text-zinc-100">Histórico</span>
               </div>
               <div className="flex items-center gap-4">
-                <span className="text-zinc-400 font-mono text-sm">{history.length}</span>
+                <span className="text-zinc-400 font-bold text-xs bg-zinc-800 px-2 py-1 rounded-lg">{history.length}</span>
                 {history.length > 0 && (
                   confirming === 'history' ? (
-                    <div className="flex items-center gap-1 bg-zinc-800 rounded-lg p-1 border border-white/5 animate-in fade-in zoom-in duration-200">
-                      <button onClick={handleClearHistory} className="p-1 text-red-400 hover:bg-red-400/10 rounded-md"><Check size={16} /></button>
-                      <button onClick={() => setConfirming(null)} className="p-1 text-zinc-500 hover:bg-zinc-700 rounded-md"><X size={16} /></button>
-                    </div>
+                    <motion.div initial={{ scale: 0.8 }} animate={{ scale: 1 }} className="flex items-center gap-1 bg-zinc-800 rounded-xl p-1 border border-white/10 shadow-xl">
+                      <button onClick={handleClearHistory} className="p-2 text-red-400 hover:bg-red-400/10 rounded-lg"><Check size={18} /></button>
+                      <button onClick={() => setConfirming(null)} className="p-2 text-zinc-500 hover:bg-zinc-700 rounded-lg"><X size={18} /></button>
+                    </motion.div>
                   ) : (
-                    <button onClick={() => setConfirming('history')} className="text-red-400 hover:text-red-300 p-2 -m-2">
-                      <Trash2 size={18} />
+                    <button onClick={() => setConfirming('history')} className="text-red-400 hover:bg-red-400/10 p-2.5 rounded-xl transition-all">
+                      <Trash2 size={20} />
                     </button>
                   )
                 )}
@@ -257,28 +289,32 @@ export function Settings() {
 
         {/* Appearance Section */}
         <section>
-          <h2 className="text-sm font-semibold tracking-widest uppercase text-zinc-500 mb-4 px-2">Aparência</h2>
-          <div className="bg-zinc-900 rounded-2xl overflow-hidden">
-            <div className="flex items-center justify-between p-4">
-              <div className="flex items-center gap-3">
-                <Moon className="text-zinc-500" size={20} />
-                <span className="font-medium">Tema</span>
+          <h2 className="text-[10px] font-black tracking-[0.2em] uppercase text-zinc-600 mb-4 px-2">Aparência</h2>
+          <div className="bg-zinc-900/50 rounded-3xl overflow-hidden border border-white/5 shadow-xl">
+            <div className="flex items-center justify-between p-5">
+              <div className="flex items-center gap-4">
+                <div className="p-2.5 rounded-xl bg-zinc-800 text-zinc-500">
+                  <Moon size={20} />
+                </div>
+                <span className="font-bold text-zinc-100">Tema</span>
               </div>
-              <span className="text-zinc-400 text-sm">Escuro (Padrão)</span>
+              <span className="text-zinc-500 font-bold text-xs bg-zinc-800 px-3 py-1.5 rounded-xl">ESCURO</span>
             </div>
           </div>
         </section>
 
         {/* About Section */}
         <section>
-          <h2 className="text-sm font-semibold tracking-widest uppercase text-zinc-500 mb-4 px-2">Sobre</h2>
-          <div className="bg-zinc-900 rounded-2xl overflow-hidden">
-            <div className="flex items-center justify-between p-4">
-              <div className="flex items-center gap-3">
-                <Info className="text-zinc-500" size={20} />
-                <span className="font-medium">Versão</span>
+          <h2 className="text-[10px] font-black tracking-[0.2em] uppercase text-zinc-600 mb-4 px-2">Sobre</h2>
+          <div className="bg-zinc-900/50 rounded-3xl overflow-hidden border border-white/5 shadow-xl">
+            <div className="flex items-center justify-between p-5">
+              <div className="flex items-center gap-4">
+                <div className="p-2.5 rounded-xl bg-zinc-800 text-zinc-500">
+                  <Info size={20} />
+                </div>
+                <span className="font-bold text-zinc-100">Versão</span>
               </div>
-              <span className="text-zinc-400 font-mono text-sm">1.0.0</span>
+              <span className="text-zinc-500 font-bold text-xs bg-zinc-800 px-3 py-1.5 rounded-xl">1.0.0</span>
             </div>
           </div>
         </section>

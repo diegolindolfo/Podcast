@@ -6,8 +6,8 @@
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
   --color-accent: var(--app-accent, #d946ef);
   --color-accent-gradient: var(--app-accent-gradient);
-  --color-bg-dark: #0f111a;
-  --color-bg-card: #1e2235;
+  --color-bg-dark: #09090b;
+  --color-bg-card: #18181b;
 }
 
 :root {
@@ -17,8 +17,12 @@
 
 @layer base {
   body {
-    @apply bg-[var(--color-bg-dark)] text-zinc-100 antialiased overflow-x-hidden;
+    @apply bg-zinc-950 text-zinc-100 antialiased overflow-x-hidden selection:bg-accent/30 selection:text-white;
     -webkit-tap-highlight-color: transparent;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply tracking-tight font-bold;
   }
 }
 

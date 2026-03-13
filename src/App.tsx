@@ -11,6 +11,8 @@ import { useStore } from './store';
 import { Podcast } from './types';
 import { deleteDownloadedEpisode } from './services/downloader';
 
+import { motion, AnimatePresence } from 'motion/react';
+
 export default function App() {
   const [currentTab, setCurrentTab] = useState('home');
   const [selectedPodcast, setSelectedPodcast] = useState<Podcast | null>(null);
@@ -87,18 +89,34 @@ export default function App() {
   };
 
   return (
-    <div className="bg-zinc-950 min-h-screen text-zinc-100 font-sans selection:bg-accent/30">
-      {selectedPodcast ? (
-        <PodcastDetail podcast={selectedPodcast} onBack={handleBack} />
-      ) : (
-        <>
-          {currentTab === 'home' && <Home onSelectPodcast={handleSelectPodcast} />}
-          {currentTab === 'search' && <Search onSelectPodcast={handleSelectPodcast} />}
-          {currentTab === 'downloads' && <Downloads />}
-          {currentTab === 'history' && <History />}
-          {currentTab === 'settings' && <Settings />}
-        </>
-      )}
+    <div className="bg-zinc-950 min-h-screen text-zinc-100 font-sans">
+      <AnimatePresence mode="wait">
+        {selectedPodcast ? (
+          <motion.div
+            key="podcast-detail"
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            transition={{ duration: 0.2 }}
+          >
+            <PodcastDetail podcast={selectedPodcast} onBack={handleBack} />
+          </motion.div>
+        ) : (
+          <motion.div
+            key={currentTab}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.2 }}
+          >
+            {currentTab === 'home' && <Home onSelectPodcast={handleSelectPodcast} />}
+            {currentTab === 'search' && <Search onSelectPodcast={handleSelectPodcast} />}
+            {currentTab === 'downloads' && <Downloads />}
+            {currentTab === 'history' && <History />}
+            {currentTab === 'settings' && <Settings />}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <Player />
       <BottomNav currentTab={currentTab} onChange={handleTabChange} />

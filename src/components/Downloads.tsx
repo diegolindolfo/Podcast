@@ -6,6 +6,8 @@ import { ptBR } from 'date-fns/locale';
 import { clsx } from 'clsx';
 import { deleteDownloadedEpisode } from '../services/downloader';
 
+import { motion, AnimatePresence } from 'motion/react';
+
 export function Downloads() {
   const { downloads, currentEpisode, isPlaying, setIsPlaying, setCurrentEpisode } = useStore();
   const [confirmingDelete, setConfirmingDelete] = useState<string | null>(null);
@@ -31,9 +33,10 @@ export function Downloads() {
   };
 
   return (
-    <div className="p-4 pb-24 min-h-screen bg-zinc-950 text-zinc-100">
+    <div className="p-4 pb-24 min-h-screen bg-zinc-950">
       <div className="pt-safe pb-6">
         <h1 className="text-3xl font-bold tracking-tight bg-clip-text text-transparent bg-[var(--color-accent-gradient)]">Downloads</h1>
+        <p className="text-zinc-500 text-sm mt-1">Episódios salvos offline</p>
       </div>
 
       {downloads.length === 0 ? (
@@ -47,78 +50,102 @@ export function Downloads() {
           </p>
         </div>
       ) : (
-        <div className="space-y-4">
-          {downloads.map((episode) => {
-            const isPlayingThis = currentEpisode?.id === episode.id && isPlaying;
-            const isConfirming = confirmingDelete === episode.id;
-            
-            return (
-              <div key={episode.id} className="group flex gap-4 p-4 rounded-xl bg-zinc-900/30 hover:bg-zinc-900/80 transition-colors border border-zinc-800/50">
-                <img 
-                  src={episode.episodeArtwork || episode.podcastArtwork} 
-                  alt={episode.podcastName} 
-                  className="w-16 h-16 rounded-lg object-cover shadow-md"
-                  loading="lazy"
-                  referrerPolicy="no-referrer"
-                />
-                
-                <div className="flex-1 min-w-0 flex flex-col justify-center">
-                  <h3 className={clsx(
-                    "font-semibold text-sm leading-tight mb-1 truncate",
-                    currentEpisode?.id === episode.id ? "text-accent" : "text-zinc-100"
-                  )}>
-                    {episode.title}
-                  </h3>
-                  <p className="text-xs text-zinc-400 truncate mb-2">{episode.podcastName}</p>
-                  <div className="flex items-center gap-2 text-[10px] font-mono text-zinc-500 uppercase tracking-wider">
-                    <span>{formatSize(episode.size)}</span>
-                    <span>•</span>
-                    <span>{(() => {
-                      const date = new Date(episode.downloadedAt);
-                      if (isNaN(date.getTime())) return 'Data Desconhecida';
-                      return format(date, "d 'de' MMM.", { locale: ptBR });
-                    })()}</span>
+        <div className="space-y-3">
+          <AnimatePresence initial={false}>
+            {downloads.map((episode, index) => {
+              const isPlayingThis = currentEpisode?.id === episode.id && isPlaying;
+              const isConfirming = confirmingDelete === episode.id;
+              
+              return (
+                <motion.div 
+                  key={episode.id}
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  transition={{ delay: index * 0.05 }}
+                  className="group flex gap-4 p-4 rounded-2xl bg-zinc-900/30 hover:bg-zinc-900/60 transition-all border border-white/5 shadow-sm"
+                >
+                  <div className="relative flex-shrink-0">
+                    <img 
+                      src={episode.episodeArtwork || episode.podcastArtwork} 
+                      alt={episode.podcastName} 
+                      className="w-16 h-16 rounded-xl object-cover shadow-lg border border-white/5"
+                      loading="lazy"
+                      referrerPolicy="no-referrer"
+                    />
+                    {isPlayingThis && (
+                      <div className="absolute inset-0 bg-accent/20 flex items-center justify-center rounded-xl">
+                        <div className="flex gap-0.5 items-end h-4">
+                          <div className="w-1 bg-white animate-[music-bar_0.6s_ease-in-out_infinite]" />
+                          <div className="w-1 bg-white animate-[music-bar_0.8s_ease-in-out_infinite]" />
+                          <div className="w-1 bg-white animate-[music-bar_0.7s_ease-in-out_infinite]" />
+                        </div>
+                      </div>
+                    )}
                   </div>
-                </div>
-                
-                <div className="flex items-center gap-2">
-                  {!isConfirming ? (
-                    <>
-                      <button 
-                        onClick={() => handlePlay(episode)}
-                        className="w-10 h-10 rounded-full bg-zinc-800 flex items-center justify-center text-zinc-300 hover:bg-[var(--color-accent-gradient)] hover:text-white transition-all"
-                      >
-                        {isPlayingThis ? <Pause size={18} fill="currentColor" /> : <Play size={18} fill="currentColor" className="ml-1" />}
-                      </button>
-                      <button 
-                        onClick={() => setConfirmingDelete(episode.id)}
-                        className="w-10 h-10 rounded-full flex items-center justify-center text-zinc-500 hover:text-red-400 hover:bg-red-400/10 transition-colors"
-                      >
-                        <Trash2 size={18} />
-                      </button>
-                    </>
-                  ) : (
-                    <div className="flex items-center gap-1 bg-zinc-800 rounded-full p-1 border border-zinc-700">
-                      <button 
-                        onClick={() => handleDelete(episode.id, episode.audioUrl)}
-                        className="w-8 h-8 rounded-full flex items-center justify-center text-red-400 hover:bg-red-400/20 transition-colors"
-                        title="Confirmar exclusão"
-                      >
-                        <Check size={16} />
-                      </button>
-                      <button 
-                        onClick={() => setConfirmingDelete(null)}
-                        className="w-8 h-8 rounded-full flex items-center justify-center text-zinc-400 hover:bg-zinc-700 transition-colors"
-                        title="Cancelar"
-                      >
-                        <X size={16} />
-                      </button>
+                  
+                  <div className="flex-1 min-w-0 flex flex-col justify-center">
+                    <h3 className={clsx(
+                      "font-bold text-sm leading-tight mb-1 truncate group-hover:text-accent transition-colors",
+                      currentEpisode?.id === episode.id ? "text-accent" : "text-zinc-100"
+                    )}>
+                      {episode.title}
+                    </h3>
+                    <p className="text-xs text-zinc-400 truncate mb-2 font-medium">{episode.podcastName}</p>
+                    <div className="flex items-center gap-2 text-[10px] font-bold text-zinc-500 uppercase tracking-widest">
+                      <span className="bg-zinc-800 px-1.5 py-0.5 rounded-md">{formatSize(episode.size)}</span>
+                      <span>•</span>
+                      <span>{(() => {
+                        const date = new Date(episode.downloadedAt);
+                        if (isNaN(date.getTime())) return 'Data Desconhecida';
+                        return format(date, "d 'de' MMM.", { locale: ptBR });
+                      })()}</span>
                     </div>
-                  )}
-                </div>
-              </div>
-            );
-          })}
+                  </div>
+                  
+                  <div className="flex items-center gap-2">
+                    {!isConfirming ? (
+                      <>
+                        <button 
+                          onClick={() => handlePlay(episode)}
+                          className="w-11 h-11 rounded-full bg-zinc-800 flex items-center justify-center text-zinc-300 hover:bg-[var(--color-accent-gradient)] hover:text-white transition-all shadow-lg border border-white/5"
+                        >
+                          {isPlayingThis ? <Pause size={20} fill="currentColor" /> : <Play size={20} fill="currentColor" className="ml-1" />}
+                        </button>
+                        <button 
+                          onClick={() => setConfirmingDelete(episode.id)}
+                          className="w-11 h-11 rounded-full flex items-center justify-center text-zinc-500 hover:text-red-400 hover:bg-red-400/10 transition-all"
+                        >
+                          <Trash2 size={20} />
+                        </button>
+                      </>
+                    ) : (
+                      <motion.div 
+                        initial={{ scale: 0.8, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        className="flex items-center gap-1 bg-zinc-800 rounded-full p-1 border border-zinc-700 shadow-xl"
+                      >
+                        <button 
+                          onClick={() => handleDelete(episode.id, episode.audioUrl)}
+                          className="w-9 h-9 rounded-full flex items-center justify-center text-red-400 hover:bg-red-400/20 transition-colors"
+                          title="Confirmar exclusão"
+                        >
+                          <Check size={18} />
+                        </button>
+                        <button 
+                          onClick={() => setConfirmingDelete(null)}
+                          className="w-9 h-9 rounded-full flex items-center justify-center text-zinc-400 hover:bg-zinc-700 transition-colors"
+                          title="Cancelar"
+                        >
+                          <X size={18} />
+                        </button>
+                      </motion.div>
+                    )}
+                  </div>
+                </motion.div>
+              );
+            })}
+          </AnimatePresence>
         </div>
       )}
     </div>
