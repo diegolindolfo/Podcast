@@ -15,7 +15,7 @@ interface PlayerState {
   history: Episode[];
   savedProgress: Record<string, number>;
   sleepTimer: number | null; // minutes remaining or timestamp
-  accentColor: string;
+  theme: string;
   podcastLastViewed: Record<number, number>;
   podcastLatestEpisode: Record<number, number>;
   settings: {
@@ -31,7 +31,8 @@ interface PlayerState {
   setPlaybackRate: (rate: number) => void;
   setVolume: (volume: number) => void;
   setSleepTimer: (minutes: number | null) => void;
-  setAccentColor: (color: string) => void;
+  setTheme: (theme: string) => void;
+  loadTheme: () => Promise<void>;
   
   subscribe: (podcast: Podcast) => Promise<void>;
   unsubscribe: (podcastId: number) => Promise<void>;
@@ -76,7 +77,7 @@ export const useStore = create<PlayerState>((setStore, getStore) => ({
   history: [],
   savedProgress: {},
   sleepTimer: null,
-  accentColor: '#10b981',
+  theme: 'default',
   podcastLastViewed: {},
   podcastLatestEpisode: {},
   settings: {
@@ -95,7 +96,14 @@ export const useStore = create<PlayerState>((setStore, getStore) => ({
   setPlaybackRate: (playbackRate) => setStore({ playbackRate }),
   setVolume: (volume) => setStore({ volume }),
   setSleepTimer: (sleepTimer) => setStore({ sleepTimer }),
-  setAccentColor: (accentColor) => setStore({ accentColor }),
+  setTheme: async (theme) => {
+    await set('theme', theme);
+    setStore({ theme });
+  },
+  loadTheme: async () => {
+    const theme = await get<string>('theme') || 'default';
+    setStore({ theme });
+  },
 
   subscribe: async (podcast) => {
     const subs = [...getStore().subscriptions, podcast];

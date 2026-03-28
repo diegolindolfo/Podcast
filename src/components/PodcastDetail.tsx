@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ChevronLeft, Play, Pause, Download, Check, Loader2, Plus, Minus, X } from 'lucide-react';
+import { ChevronLeft, Play, Pause, Download, Check, Loader2, Plus, Minus, X, Calendar, Clock } from 'lucide-react';
 import { Podcast, Episode } from '../types';
 import { getPodcastFeed } from '../services/api';
 import { useStore } from '../store';
@@ -135,11 +135,11 @@ export function PodcastDetail({ podcast, onBack }: PodcastDetailProps) {
   };
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-zinc-100 pb-24 relative">
+    <div className="min-h-screen bg-bg-main text-text-main pb-24 relative">
       {/* Header */}
-      <div className="sticky top-0 z-30 glass border-b border-white/5 pt-safe">
+      <div className="sticky top-0 z-30 glass border-b border-border-subtle pt-safe">
         <div className="flex items-center p-4">
-          <button onClick={onBack} className="p-2 -ml-2 text-zinc-400 hover:text-white transition-colors">
+          <button onClick={onBack} className="p-2 -ml-2 text-text-muted hover:text-text-main transition-colors">
             <ChevronLeft size={24} />
           </button>
           <h2 className="ml-2 text-sm font-semibold truncate">
@@ -149,7 +149,7 @@ export function PodcastDetail({ podcast, onBack }: PodcastDetailProps) {
       </div>
 
       {/* Hero */}
-      <div className="px-4 pt-6 pb-8 border-b border-white/5">
+      <div className="px-4 pt-6 pb-8 border-b border-border-subtle">
         <div className="flex flex-col sm:flex-row gap-6 items-center sm:items-start">
           <img 
             src={podcast.artworkUrl600} 
@@ -160,15 +160,15 @@ export function PodcastDetail({ podcast, onBack }: PodcastDetailProps) {
           
           <div className="flex-1 text-center sm:text-left">
             <h1 className="text-2xl font-bold mb-1">{podcast.collectionName}</h1>
-            <p className="text-zinc-400 text-sm mb-4">{podcast.artistName}</p>
+            <p className="text-text-muted text-sm mb-4">{podcast.artistName}</p>
             
             <button 
               onClick={toggleSubscription}
               className={clsx(
                 "px-6 py-2 rounded-full text-sm font-semibold transition-all active:scale-95",
                 isSubscribed 
-                  ? "bg-zinc-800 text-zinc-300" 
-                  : "bg-white text-zinc-950 hover:bg-zinc-200"
+                  ? "bg-bg-surface-hover text-text-muted" 
+                  : "bg-text-main text-bg-main hover:opacity-90"
               )}
             >
               {isSubscribed ? "Inscrito" : "Inscrever-se"}
@@ -178,8 +178,8 @@ export function PodcastDetail({ podcast, onBack }: PodcastDetailProps) {
         
         {description && (
           <div className="mt-6">
-            <h3 className="text-xs font-bold uppercase text-zinc-500 mb-2">Sobre</h3>
-            <p className="text-zinc-400 text-sm leading-relaxed line-clamp-3 hover:line-clamp-none cursor-pointer">
+            <h3 className="text-xs font-bold uppercase text-text-muted mb-2">Sobre</h3>
+            <p className="text-text-muted text-sm leading-relaxed line-clamp-3 hover:line-clamp-none cursor-pointer">
               {description}
             </p>
           </div>
@@ -190,16 +190,16 @@ export function PodcastDetail({ podcast, onBack }: PodcastDetailProps) {
       <div className="px-4 py-6">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-bold">Episódios</h2>
-          <span className="text-xs text-zinc-500">{episodes.length}</span>
+          <span className="text-xs text-text-muted">{episodes.length}</span>
         </div>
         
         {loading ? (
           <div className="flex flex-col items-center justify-center py-20 gap-4">
-            <Loader2 className="animate-spin text-accent" size={24} />
-            <p className="text-xs text-zinc-500">Carregando...</p>
+            <Loader2 className="animate-spin text-accent-main" size={24} />
+            <p className="text-xs text-text-muted">Carregando...</p>
           </div>
         ) : (
-          <div className="divide-y divide-white/5">
+          <div className="divide-y divide-border-subtle">
             {episodes.slice(0, visibleCount).map((episode) => {
               const isPlayingThis = currentEpisode?.id === episode.id && isPlaying;
               const isDownloaded = downloads.some(d => d.id === episode.id);
@@ -210,23 +210,34 @@ export function PodcastDetail({ podcast, onBack }: PodcastDetailProps) {
                   className="py-4 flex gap-4 group"
                 >
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="text-[10px] font-medium text-zinc-500 uppercase tracking-wider">
-                        {(() => {
-                          if (!episode.pubDate) return '';
-                          const date = new Date(episode.pubDate);
-                          if (isNaN(date.getTime())) return '';
-                          return format(date, "d 'de' MMM.", { locale: ptBR });
-                        })()}
-                      </span>
+                    <div className="flex items-center gap-3 mb-2 text-xs font-semibold text-text-muted">
+                      {episode.pubDate && (
+                        <div className="flex items-center gap-1.5">
+                          <Calendar size={14} className="text-accent-main" />
+                          <span>
+                            {(() => {
+                              const date = new Date(episode.pubDate);
+                              if (isNaN(date.getTime())) return '';
+                              return format(date, "d 'de' MMM, yyyy", { locale: ptBR });
+                            })()}
+                          </span>
+                        </div>
+                      )}
+                      
+                      {episode.duration && (
+                        <div className="flex items-center gap-1.5">
+                          <Clock size={14} className="text-accent-main" />
+                          <span>{formatDuration(episode.duration)}</span>
+                        </div>
+                      )}
                     </div>
                     <h3 className={clsx(
-                      "font-semibold text-sm leading-snug mb-1 line-clamp-2",
-                      currentEpisode?.id === episode.id ? "text-accent" : "text-zinc-100"
+                      "font-semibold text-sm leading-snug mb-1.5 line-clamp-2",
+                      currentEpisode?.id === episode.id ? "text-accent-main" : "text-text-main"
                     )}>
                       {episode.title}
                     </h3>
-                    <p className="text-xs text-zinc-500 line-clamp-2 mb-3">
+                    <p className="text-xs text-text-muted line-clamp-2 mb-3">
                       {episode.description}
                     </p>
                     
@@ -234,29 +245,25 @@ export function PodcastDetail({ podcast, onBack }: PodcastDetailProps) {
                       <button 
                         onClick={() => handlePlay(episode)}
                         className={clsx(
-                          "flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold transition-all",
-                          isPlayingThis ? "bg-accent text-white" : "bg-zinc-800 text-zinc-300 hover:bg-zinc-700"
+                          "flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-semibold transition-all",
+                          isPlayingThis ? "bg-accent-main text-accent-text" : "bg-bg-surface-hover text-text-muted hover:bg-bg-surface"
                         )}
                       >
                         {isPlayingThis ? <Pause size={14} fill="currentColor" /> : <Play size={14} fill="currentColor" />}
                         {isPlayingThis ? 'Pausar' : 'Ouvir'}
                       </button>
-                      
-                      {episode.duration && (
-                        <span className="text-[10px] text-zinc-500">{formatDuration(episode.duration)}</span>
-                      )}
 
                       <div className="ml-auto">
                         {downloadProgress[episode.id] !== undefined ? (
-                          <div className="text-[10px] font-bold text-accent">
+                          <div className="text-[10px] font-bold text-accent-main">
                             {downloadProgress[episode.id]}%
                           </div>
                         ) : (
                           <button 
                             onClick={() => handleDownload(episode, isDownloaded)}
                             className={clsx(
-                              "p-1.5 rounded-full transition-all",
-                              isDownloaded ? "text-accent" : "text-zinc-500 hover:text-white"
+                              "p-2 rounded-full transition-all",
+                              isDownloaded ? "text-accent-main bg-accent-main/10" : "text-text-muted bg-bg-surface-hover hover:text-text-main hover:bg-bg-surface"
                             )}
                           >
                             {isDownloaded ? <Check size={16} /> : <Download size={16} />}
@@ -273,7 +280,7 @@ export function PodcastDetail({ podcast, onBack }: PodcastDetailProps) {
               <div className="flex justify-center py-8">
                 <button
                   onClick={() => setVisibleCount(prev => prev + 50)}
-                  className="px-6 py-2 rounded-full border border-white/10 text-zinc-400 text-xs font-semibold"
+                  className="px-6 py-2 rounded-full border border-border-subtle text-text-muted text-xs font-semibold"
                 >
                   Ver mais
                 </button>

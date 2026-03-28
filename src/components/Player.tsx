@@ -244,15 +244,15 @@ export function Player() {
         className={clsx(
           "fixed left-0 right-0 z-50 transition-all duration-300",
           isExpanded 
-            ? "bottom-0 h-screen bg-zinc-950" 
-            : "bottom-16 h-16 bg-zinc-900/95 backdrop-blur-lg mx-2 mb-2 rounded-xl border border-white/5 shadow-lg"
+            ? "bottom-0 h-screen bg-bg-main" 
+            : "bottom-16 h-16 bg-bg-surface/95 backdrop-blur-lg mx-2 mb-2 rounded-xl border border-border-subtle shadow-lg"
         )}
       >
         {!isExpanded && (
           <div className="flex items-center h-full px-4 cursor-pointer" onClick={() => setIsExpanded(true)}>
-            <div className="absolute top-0 left-0 right-0 h-0.5 bg-white/5">
+            <div className="absolute top-0 left-0 right-0 h-0.5 bg-border-subtle">
               <div 
-                className="h-full bg-accent transition-all duration-300 ease-linear"
+                className="h-full bg-accent-main transition-all duration-300 ease-linear"
                 style={{ width: `${(progress / (duration || 1)) * 100}%` }}
               />
             </div>
@@ -264,12 +264,12 @@ export function Player() {
               referrerPolicy="no-referrer"
             />
             <div className="flex-1 min-w-0">
-              <h4 className="text-sm font-semibold text-zinc-100 truncate">{currentEpisode.title}</h4>
-              <p className="text-[10px] text-zinc-500 truncate">{currentEpisode.podcastName}</p>
+              <h4 className="text-sm font-semibold text-text-main truncate">{currentEpisode.title}</h4>
+              <p className="text-[10px] text-text-muted truncate">{currentEpisode.podcastName}</p>
             </div>
             <button 
               onClick={(e) => { e.stopPropagation(); setIsPlaying(!isPlaying); }}
-              className="p-2 text-zinc-100 hover:text-accent transition-colors"
+              className="p-2 text-text-main hover:text-accent-main transition-colors"
             >
               {isPlaying ? <Pause size={24} fill="currentColor" /> : <Play size={24} fill="currentColor" />}
             </button>
@@ -283,13 +283,13 @@ export function Player() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: "100%" }}
               transition={{ type: "spring", damping: 25, stiffness: 200 }}
-              className="absolute inset-0 bg-zinc-950 flex flex-col p-6 overflow-y-auto"
+              className="absolute inset-0 bg-bg-main flex flex-col p-6 overflow-y-auto"
             >
               <div className="flex justify-between items-center mb-8 pt-safe">
-                <button onClick={() => setIsExpanded(false)} className="p-2 -ml-2 text-zinc-400 hover:text-white transition-colors">
+                <button onClick={() => setIsExpanded(false)} className="p-2 -ml-2 text-text-muted hover:text-text-main transition-colors">
                   <ChevronDown size={28} />
                 </button>
-                <span className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Tocando Agora</span>
+                <span className="text-xs font-bold text-text-muted uppercase tracking-widest">Tocando Agora</span>
                 <div className="w-10" />
               </div>
 
@@ -302,12 +302,12 @@ export function Player() {
                 />
                 
                 <div className="text-center w-full mb-10">
-                  <h2 className="text-2xl font-bold text-white mb-2 line-clamp-2 leading-tight">{currentEpisode.title}</h2>
-                  <p className="text-zinc-400 text-lg">{currentEpisode.podcastName}</p>
+                  <h2 className="text-2xl font-bold text-text-main mb-2 line-clamp-2 leading-tight">{currentEpisode.title}</h2>
+                  <p className="text-text-muted text-lg">{currentEpisode.podcastName}</p>
                 </div>
 
                 <div className="w-full mb-10">
-                  <div className="relative h-1.5 bg-white/10 rounded-full mb-3">
+                  <div className="relative h-1.5 bg-border-subtle rounded-full mb-3">
                     <input 
                       type="range" 
                       min={0} 
@@ -317,27 +317,27 @@ export function Player() {
                       className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                     />
                     <div 
-                      className="absolute top-0 left-0 h-full bg-accent rounded-full"
+                      className="absolute top-0 left-0 h-full bg-accent-main rounded-full"
                       style={{ width: `${(progress / (duration || 1)) * 100}%` }}
                     />
                   </div>
-                  <div className="flex justify-between text-xs text-zinc-500 font-medium">
+                  <div className="flex justify-between text-xs text-text-muted font-medium">
                     <span>{formatTime(progress)}</span>
                     <span>{formatTime(duration)}</span>
                   </div>
                 </div>
 
                 <div className="flex items-center justify-center space-x-10 w-full mb-12">
-                  <button onClick={() => skip(-15)} className="text-zinc-400 hover:text-white transition-colors">
+                  <button onClick={() => skip(-15)} className="text-text-muted hover:text-text-main transition-colors">
                     <SkipBack size={32} fill="currentColor" />
                   </button>
                   <button 
                     onClick={() => setIsPlaying(!isPlaying)}
-                    className="w-20 h-20 flex items-center justify-center bg-white text-zinc-950 rounded-full hover:scale-105 active:scale-95 transition-all shadow-xl"
+                    className="w-20 h-20 flex items-center justify-center bg-text-main text-bg-main rounded-full hover:scale-105 active:scale-95 transition-all shadow-xl"
                   >
                     {isPlaying ? <Pause size={36} fill="currentColor" /> : <Play size={36} fill="currentColor" className="ml-1.5" />}
                   </button>
-                  <button onClick={() => skip(30)} className="text-zinc-400 hover:text-white transition-colors">
+                  <button onClick={() => skip(30)} className="text-text-muted hover:text-text-main transition-colors">
                     <SkipForward size={32} fill="currentColor" />
                   </button>
                 </div>
@@ -348,21 +348,21 @@ export function Player() {
                       onClick={() => { setShowSpeedMenu(!showSpeedMenu); setShowTimerMenu(false); }}
                       className={clsx(
                         "flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all",
-                        playbackRate !== 1 ? "bg-accent text-zinc-950" : "bg-zinc-900 text-zinc-400 hover:text-white"
+                        playbackRate !== 1 ? "bg-accent-main text-accent-text" : "bg-bg-surface text-text-muted hover:text-text-main"
                       )}
                     >
                       <FastForward size={14} />
                       {playbackRate}x
                     </button>
                     {showSpeedMenu && (
-                      <div className="absolute bottom-full left-0 mb-4 bg-zinc-900 rounded-xl shadow-2xl overflow-hidden border border-white/5 min-w-[100px]">
+                      <div className="absolute bottom-full left-0 mb-4 bg-bg-surface rounded-xl shadow-2xl overflow-hidden border border-border-subtle min-w-[100px]">
                         {[0.8, 1, 1.2, 1.5, 2].map(rate => (
                           <button
                             key={rate}
                             onClick={() => { setPlaybackRate(rate); setShowSpeedMenu(false); }}
                             className={clsx(
-                              "block w-full text-left px-5 py-3 text-xs font-bold hover:bg-zinc-800 transition-colors",
-                              playbackRate === rate ? "text-accent" : "text-zinc-300"
+                              "block w-full text-left px-5 py-3 text-xs font-bold hover:bg-bg-surface-hover transition-colors",
+                              playbackRate === rate ? "text-accent-main" : "text-text-muted"
                             )}
                           >
                             {rate}x
@@ -377,19 +377,19 @@ export function Player() {
                       onClick={() => { setShowTimerMenu(!showTimerMenu); setShowSpeedMenu(false); }}
                       className={clsx(
                         "flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all",
-                        sleepTimer ? "bg-accent text-zinc-950" : "bg-zinc-900 text-zinc-400 hover:text-white"
+                        sleepTimer ? "bg-accent-main text-accent-text" : "bg-bg-surface text-text-muted hover:text-text-main"
                       )}
                     >
                       <Clock size={14} />
                       {sleepTimer ? getTimerRemaining() : 'Timer'}
                     </button>
                     {showTimerMenu && (
-                      <div className="absolute bottom-full right-0 mb-4 bg-zinc-900 rounded-xl shadow-2xl overflow-hidden border border-white/5 min-w-[140px]">
+                      <div className="absolute bottom-full right-0 mb-4 bg-bg-surface rounded-xl shadow-2xl overflow-hidden border border-border-subtle min-w-[140px]">
                         <button
                           onClick={() => handleSetTimer(null)}
                           className={clsx(
-                            "block w-full text-left px-5 py-3 text-xs font-bold hover:bg-zinc-800 transition-colors",
-                            !sleepTimer ? "text-accent" : "text-zinc-300"
+                            "block w-full text-left px-5 py-3 text-xs font-bold hover:bg-bg-surface-hover transition-colors",
+                            !sleepTimer ? "text-accent-main" : "text-text-muted"
                           )}
                         >
                           Desligado
@@ -398,7 +398,7 @@ export function Player() {
                           <button
                             key={mins}
                             onClick={() => handleSetTimer(mins)}
-                            className="block w-full text-left px-5 py-3 text-xs font-bold text-zinc-300 hover:bg-zinc-800 transition-colors"
+                            className="block w-full text-left px-5 py-3 text-xs font-bold text-text-muted hover:bg-bg-surface-hover transition-colors"
                           >
                             {mins} min
                           </button>

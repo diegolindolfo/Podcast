@@ -20,14 +20,28 @@ import { deleteDownloadedEpisode } from '../services/downloader';
 import { useState, useEffect, ReactNode } from 'react';
 import { clsx } from 'clsx';
 import { motion, AnimatePresence } from 'motion/react';
+import { db } from '../firebase';
+import { doc, setDoc } from 'firebase/firestore';
 
-const ACCENT_COLORS = [
-  { name: 'Esmeralda', value: '#10b981' },
-  { name: 'Indigo', value: '#6366f1' },
-  { name: 'Rosa', value: '#ec4899' },
-  { name: 'Âmbar', value: '#f59e0b' },
-  { name: 'Ciano', value: '#06b6d4' },
-  { name: 'Violeta', value: '#8b5cf6' },
+function urlBase64ToUint8Array(base64String: string) {
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding).replace(/\-/g, '+').replace(/_/g, '/');
+  const rawData = window.atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; ++i) {
+    outputArray[i] = rawData.charCodeAt(i);
+  }
+  return outputArray;
+}
+
+const THEMES = [
+  { name: 'Padrão (Escuro)', value: 'default', color: '#8b5cf6' },
+  { name: 'Menta', value: 'frosted-mint', color: '#90CF8E' },
+  { name: 'Lavanda', value: 'lavender-veil', color: '#994D74' },
+  { name: 'Azul Alice', value: 'alice-blue', color: '#4893C6' },
+  { name: 'Creme', value: 'almond-cream', color: '#7F5539' },
+  { name: 'Carbono', value: 'carbon-black', color: '#ADB5BD' },
+  { name: 'Celadon', value: 'celadon', color: '#8FB996' },
 ];
 
 interface SectionProps {
@@ -37,8 +51,8 @@ interface SectionProps {
 
 const Section = ({ title, children }: SectionProps) => (
   <section>
-    <h2 className="text-xs font-bold uppercase text-zinc-500 mb-3 px-1">{title}</h2>
-    <div className="bg-zinc-900 rounded-2xl overflow-hidden border border-white/5">
+    <h2 className="text-xs font-bold uppercase text-text-muted mb-3 px-1">{title}</h2>
+    <div className="bg-bg-surface rounded-2xl overflow-hidden border border-border-subtle">
       {children}
     </div>
   </section>
@@ -57,27 +71,27 @@ const SettingItem = ({ icon, title, subtitle, children, active, onClick }: Setti
   <div 
     className={clsx(
       "flex items-center justify-between p-4 transition-colors",
-      onClick ? "cursor-pointer hover:bg-zinc-800" : ""
+      onClick ? "cursor-pointer hover:bg-bg-surface-hover" : ""
     )}
     onClick={onClick}
   >
     <div className="flex items-center gap-3">
       <div className={clsx(
         "p-2 rounded-lg transition-colors",
-        active ? "bg-accent/10 text-accent" : "bg-zinc-800 text-zinc-500"
+        active ? "bg-accent-main/10 text-accent-main" : "bg-bg-surface-hover text-text-muted"
       )}>
         {icon}
       </div>
       <div>
-        <span className="font-semibold block text-zinc-100 text-sm">{title}</span>
-        {subtitle && <span className="text-xs text-zinc-500">{subtitle}</span>}
+        <span className="font-semibold block text-text-main text-sm">{title}</span>
+        {subtitle && <span className="text-xs text-text-muted">{subtitle}</span>}
       </div>
     </div>
     {children}
   </div>
 );
 
-const Divider = () => <div className="h-px bg-white/5 mx-4" />;
+const Divider = () => <div className="h-px bg-border-subtle mx-4" />;
 
 export function Settings() {
   const { 
@@ -89,8 +103,8 @@ export function Settings() {
     clearHistory,
     settings,
     updateSettings,
-    accentColor,
-    setAccentColor
+    theme,
+    setTheme
   } = useStore();
   
   const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>('default');
@@ -148,7 +162,7 @@ export function Settings() {
       await clearSubscriptions();
       await clearHistory();
       await updateSettings({ autoDownload: false, autoDelete: false });
-      setAccentColor('#8b5cf6');
+      setTheme('default');
       setConfirming(null);
       showMessage('Todas as configurações foram resetadas');
     } catch (e) {
@@ -157,18 +171,46 @@ export function Settings() {
   };
 
   const requestNotificationPermission = async () => {
-    if (!('Notification' in window)) {
-      showMessage('Este navegador não suporta notificações.', 'error');
+    if (!('Notification' in window) || !('serviceWorker' in navigator)) {
+      showMessage('Este navegador não suporta notificações Push.', 'error');
       return;
     }
-    const permission = await Notification.requestPermission();
-    setNotificationPermission(permission);
-    
-    if (permission === 'granted') {
-      new Notification('Notificações Ativadas!', {
-        body: 'Você receberá avisos sobre novos episódios.',
-        icon: 'https://images.icon-icons.com/2642/PNG/512/google_podcast_logo_icon_159336.png'
-      });
+    try {
+      const permission = await Notification.requestPermission();
+      setNotificationPermission(permission);
+      
+      if (permission === 'granted') {
+        const reg = await navigator.serviceWorker.ready;
+        
+        const response = await fetch('/api/vapidPublicKey');
+        const { publicKey } = await response.json();
+        const applicationServerKey = urlBase64ToUint8Array(publicKey);
+
+        const subscription = await reg.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey
+        });
+
+        const subData = JSON.parse(JSON.stringify(subscription));
+        const podcastUrls = subscriptions.map(p => p.feedUrl);
+        
+        let subId = localStorage.getItem('pushSubId');
+        if (!subId) {
+          subId = crypto.randomUUID();
+          localStorage.setItem('pushSubId', subId);
+        }
+
+        await setDoc(doc(db, 'pushSubscriptions', subId), {
+          endpoint: subData.endpoint,
+          keys: subData.keys,
+          podcasts: podcastUrls
+        });
+
+        showMessage('Notificações Push ativadas com sucesso!');
+      }
+    } catch (err) {
+      console.error('Error enabling push:', err);
+      showMessage('Erro ao ativar notificações Push.', 'error');
     }
   };
 
@@ -177,8 +219,8 @@ export function Settings() {
       navigator.serviceWorker.getRegistration().then(reg => {
         const options = {
           body: 'Um novo episódio do seu podcast favorito acabou de sair!',
-          icon: 'https://images.icon-icons.com/2642/PNG/512/google_podcast_logo_icon_159336.png',
-          badge: 'https://images.icon-icons.com/2642/PNG/512/google_podcast_logo_icon_159336.png',
+          icon: '/icon.svg',
+          badge: '/icon.svg',
           vibrate: [100, 50, 100],
         };
         
@@ -198,7 +240,7 @@ export function Settings() {
       onClick={onToggle}
       className={clsx(
         "w-10 h-5 rounded-full transition-all relative",
-        enabled ? "bg-accent" : "bg-zinc-800"
+        enabled ? "bg-accent-main" : "bg-bg-surface-hover"
       )}
     >
       <div 
@@ -211,10 +253,10 @@ export function Settings() {
   );
 
   return (
-    <div className="p-4 pb-32 min-h-screen bg-zinc-950">
+    <div className="p-4 pb-32 min-h-screen bg-bg-main">
       <div className="pt-safe pb-6">
-        <h1 className="text-3xl font-bold tracking-tight text-white">Configurações</h1>
-        <p className="text-zinc-500 text-sm mt-1">Personalize sua experiência</p>
+        <h1 className="text-3xl font-bold tracking-tight text-text-main">Configurações</h1>
+        <p className="text-text-muted text-sm mt-1">Personalize sua experiência</p>
       </div>
 
       <AnimatePresence>
@@ -226,8 +268,8 @@ export function Settings() {
             className={clsx(
               "fixed top-6 left-6 right-6 z-[60] p-4 rounded-xl shadow-xl flex items-center gap-3 border backdrop-blur-lg",
               message.type === 'success' 
-                ? "bg-zinc-900 border-emerald-500/20 text-emerald-400" 
-                : "bg-zinc-900 border-red-500/20 text-red-400"
+                ? "bg-bg-surface border-emerald-500/20 text-emerald-500" 
+                : "bg-bg-surface border-red-500/20 text-red-500"
             )}
           >
             {message.type === 'success' ? <Check size={20} /> : <AlertCircle size={20} />}
@@ -241,28 +283,28 @@ export function Settings() {
         <Section title="Aparência">
           <div className="p-4">
             <div className="flex items-center gap-3 mb-4">
-              <div className="p-2 rounded-lg bg-accent/10 text-accent">
+              <div className="p-2 rounded-lg bg-accent-main/10 text-accent-main">
                 <Palette size={20} />
               </div>
               <div>
-                <span className="font-semibold block text-zinc-100 text-sm">Cor de Destaque</span>
-                <span className="text-xs text-zinc-500">Escolha a cor principal do app</span>
+                <span className="font-semibold block text-text-main text-sm">Tema do App</span>
+                <span className="text-xs text-text-muted">Escolha a paleta de cores principal</span>
               </div>
             </div>
             
-            <div className="grid grid-cols-6 gap-2">
-              {ACCENT_COLORS.map((color) => (
+            <div className="grid grid-cols-7 gap-2">
+              {THEMES.map((t) => (
                 <button
-                  key={color.value}
-                  onClick={() => setAccentColor(color.value)}
+                  key={t.value}
+                  onClick={() => setTheme(t.value)}
                   className={clsx(
                     "aspect-square rounded-full transition-all relative flex items-center justify-center border-2",
-                    accentColor === color.value ? "border-white" : "border-transparent"
+                    theme === t.value ? "border-white" : "border-transparent"
                   )}
-                  style={{ backgroundColor: color.value }}
-                  title={color.name}
+                  style={{ backgroundColor: t.color }}
+                  title={t.name}
                 >
-                  {accentColor === color.value && <Check size={14} className="text-white" />}
+                  {theme === t.value && <Check size={14} className="text-white" />}
                 </button>
               ))}
             </div>
@@ -310,8 +352,8 @@ export function Settings() {
               className={clsx(
                 "text-xs px-3 py-1.5 rounded-lg font-bold transition-all",
                 notificationPermission === 'granted' 
-                  ? "bg-accent/10 text-accent" 
-                  : "bg-zinc-800 text-zinc-300 hover:bg-zinc-700"
+                  ? "bg-accent-main/10 text-accent-main" 
+                  : "bg-bg-surface-hover text-text-muted hover:bg-border-subtle"
               )}
             >
               {notificationPermission === 'granted' ? 'ATIVADO' : 'ATIVAR'}
@@ -341,12 +383,12 @@ export function Settings() {
           >
             {downloads.length > 0 && (
               confirming === 'downloads' ? (
-                <div className="flex items-center gap-1 bg-zinc-800 rounded-lg p-1 border border-white/5">
-                  <button onClick={handleClearDownloads} className="p-1.5 text-red-400 hover:bg-red-400/10 rounded-md"><Check size={16} /></button>
-                  <button onClick={() => setConfirming(null)} className="p-1.5 text-zinc-500 hover:bg-zinc-700 rounded-md"><X size={16} /></button>
+                <div className="flex items-center gap-1 bg-bg-surface-hover rounded-lg p-1 border border-border-subtle">
+                  <button onClick={handleClearDownloads} className="p-1.5 text-red-500 hover:bg-red-500/10 rounded-md"><Check size={16} /></button>
+                  <button onClick={() => setConfirming(null)} className="p-1.5 text-text-muted hover:bg-border-subtle rounded-md"><X size={16} /></button>
                 </div>
               ) : (
-                <button onClick={() => setConfirming('downloads')} className="text-red-400 hover:bg-red-400/10 p-2 rounded-lg transition-all">
+                <button onClick={() => setConfirming('downloads')} className="text-red-500 hover:bg-red-500/10 p-2 rounded-lg transition-all">
                   <Trash2 size={20} />
                 </button>
               )
@@ -359,12 +401,12 @@ export function Settings() {
             subtitle="Limpar capas salvas"
           >
             {confirming === 'images' ? (
-              <div className="flex items-center gap-1 bg-zinc-800 rounded-lg p-1 border border-white/5">
-                <button onClick={handleClearImageCache} className="p-1.5 text-red-400 hover:bg-red-400/10 rounded-md"><Check size={16} /></button>
-                <button onClick={() => setConfirming(null)} className="p-1.5 text-zinc-500 hover:bg-zinc-700 rounded-md"><X size={16} /></button>
+              <div className="flex items-center gap-1 bg-bg-surface-hover rounded-lg p-1 border border-border-subtle">
+                <button onClick={handleClearImageCache} className="p-1.5 text-red-500 hover:bg-red-500/10 rounded-md"><Check size={16} /></button>
+                <button onClick={() => setConfirming(null)} className="p-1.5 text-text-muted hover:bg-border-subtle rounded-md"><X size={16} /></button>
               </div>
             ) : (
-              <button onClick={() => setConfirming('images')} className="text-red-400 hover:bg-red-400/10 p-2 rounded-lg transition-all">
+              <button onClick={() => setConfirming('images')} className="text-red-500 hover:bg-red-500/10 p-2 rounded-lg transition-all">
                 <Trash2 size={20} />
               </button>
             )}
@@ -377,12 +419,12 @@ export function Settings() {
           >
             {subscriptions.length > 0 && (
               confirming === 'subscriptions' ? (
-                <div className="flex items-center gap-1 bg-zinc-800 rounded-lg p-1 border border-white/5">
-                  <button onClick={handleClearSubscriptions} className="p-1.5 text-red-400 hover:bg-red-400/10 rounded-md"><Check size={16} /></button>
-                  <button onClick={() => setConfirming(null)} className="p-1.5 text-zinc-500 hover:bg-zinc-700 rounded-md"><X size={16} /></button>
+                <div className="flex items-center gap-1 bg-bg-surface-hover rounded-lg p-1 border border-border-subtle">
+                  <button onClick={handleClearSubscriptions} className="p-1.5 text-red-500 hover:bg-red-500/10 rounded-md"><Check size={16} /></button>
+                  <button onClick={() => setConfirming(null)} className="p-1.5 text-text-muted hover:bg-border-subtle rounded-md"><X size={16} /></button>
                 </div>
               ) : (
-                <button onClick={() => setConfirming('subscriptions')} className="text-red-400 hover:bg-red-400/10 p-2 rounded-lg transition-all">
+                <button onClick={() => setConfirming('subscriptions')} className="text-red-500 hover:bg-red-500/10 p-2 rounded-lg transition-all">
                   <Trash2 size={20} />
                 </button>
               )
@@ -396,12 +438,12 @@ export function Settings() {
           >
             {history.length > 0 && (
               confirming === 'history' ? (
-                <div className="flex items-center gap-1 bg-zinc-800 rounded-lg p-1 border border-white/5">
-                  <button onClick={handleClearHistory} className="p-1.5 text-red-400 hover:bg-red-400/10 rounded-md"><Check size={16} /></button>
-                  <button onClick={() => setConfirming(null)} className="p-1.5 text-zinc-500 hover:bg-zinc-700 rounded-md"><X size={16} /></button>
+                <div className="flex items-center gap-1 bg-bg-surface-hover rounded-lg p-1 border border-border-subtle">
+                  <button onClick={handleClearHistory} className="p-1.5 text-red-500 hover:bg-red-500/10 rounded-md"><Check size={16} /></button>
+                  <button onClick={() => setConfirming(null)} className="p-1.5 text-text-muted hover:bg-border-subtle rounded-md"><X size={16} /></button>
                 </div>
               ) : (
-                <button onClick={() => setConfirming('history')} className="text-red-400 hover:bg-red-400/10 p-2 rounded-lg transition-all">
+                <button onClick={() => setConfirming('history')} className="text-red-500 hover:bg-red-500/10 p-2 rounded-lg transition-all">
                   <Trash2 size={20} />
                 </button>
               )
@@ -428,7 +470,7 @@ export function Settings() {
             title="Versão"
             subtitle="Podcast App Team"
           >
-            <span className="text-zinc-500 font-bold text-xs bg-zinc-800 px-2 py-1 rounded-lg">1.2.0</span>
+            <span className="text-text-muted font-bold text-xs bg-bg-surface-hover px-2 py-1 rounded-lg">1.2.0</span>
           </SettingItem>
         </Section>
       </div>
@@ -448,14 +490,14 @@ export function Settings() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 20 }}
-              className="relative w-full max-w-sm bg-zinc-900 rounded-2xl p-6 shadow-2xl border border-white/5"
+              className="relative w-full max-w-sm bg-bg-surface rounded-2xl p-6 shadow-2xl border border-border-subtle"
             >
               <div className="flex flex-col items-center text-center">
                 <div className="w-12 h-12 rounded-full bg-red-500/10 flex items-center justify-center text-red-500 mb-4">
                   <Trash2 size={24} />
                 </div>
-                <h3 className="text-lg font-bold text-zinc-100 mb-2">Confirmar ação?</h3>
-                <p className="text-zinc-400 text-sm mb-6">
+                <h3 className="text-lg font-bold text-text-main mb-2">Confirmar ação?</h3>
+                <p className="text-text-muted text-sm mb-6">
                   {confirming === 'subscriptions' && 'Isso removerá todas as suas inscrições permanentemente.'}
                   {confirming === 'downloads' && 'Todos os episódios baixados serão excluídos do dispositivo.'}
                   {confirming === 'history' && 'Seu histórico de reprodução será limpo.'}
@@ -465,7 +507,7 @@ export function Settings() {
                 <div className="grid grid-cols-2 gap-3 w-full">
                   <button 
                     onClick={() => setConfirming(null)}
-                    className="py-2.5 px-4 rounded-xl bg-zinc-800 text-zinc-100 font-semibold text-sm"
+                    className="py-2.5 px-4 rounded-xl bg-bg-surface-hover text-text-main font-semibold text-sm"
                   >
                     Cancelar
                   </button>

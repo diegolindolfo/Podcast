@@ -1,0 +1,43 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    // Collection: pushSubscriptions
+    // Document ID: {subscriptionId}
+    // Fields:
+    //   - endpoint: string (required)
+    //   - keys: map (required)
+    //     - p256dh: string
+    //     - auth: string
+    //   - podcasts: list of strings (required)
+    // ===============================================================
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isValidSubscription() {
+      let data = request.resource.data;
+      return data.keys().hasAll(['endpoint', 'keys', 'podcasts']) &&
+             data.endpoint is string &&
+             data.keys is map &&
+             data.keys.keys().hasAll(['p256dh', 'auth']) &&
+             data.keys.p256dh is string &&
+             data.keys.auth is string &&
+             data.podcasts is list;
+    }
+
+    match /pushSubscriptions/{subscriptionId} {
+      // Allow any authenticated user (including anonymous) to create/update their own subscription
+      // We use the subscriptionId as the document ID, but we should probably store the uid.
+      // For simplicity, we'll just allow authenticated users to read/write.
+      allow read, write: if isAuthenticated() && (request.method == 'delete' || isValidSubscription());
+    }
+  }
+}

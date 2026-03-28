@@ -10,6 +10,8 @@ import { PodcastDetail } from './components/PodcastDetail';
 import { useStore } from './store';
 import { Podcast } from './types';
 import { deleteDownloadedEpisode } from './services/downloader';
+import { db } from './firebase';
+import { doc, updateDoc } from 'firebase/firestore';
 
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -26,7 +28,8 @@ export default function App() {
     loadHistory, 
     loadSettings,
     loadFinishedAt,
-    accentColor,
+    loadTheme,
+    theme,
     settings,
     finishedAt,
     downloads,
@@ -43,6 +46,7 @@ export default function App() {
     loadHistory();
     loadSettings();
     loadFinishedAt();
+    loadTheme();
   }, []);
 
   // Auto-delete logic
@@ -134,9 +138,26 @@ export default function App() {
     return () => clearInterval(interval);
   }, [settings.autoDownload, subscriptions]);
 
+  // Sync push subscriptions to Firestore
   useEffect(() => {
-    document.documentElement.style.setProperty('--app-accent', accentColor);
-  }, [accentColor]);
+    const subId = localStorage.getItem('pushSubId');
+    if (subId) {
+      const podcastUrls = subscriptions.map(p => p.feedUrl);
+      updateDoc(doc(db, 'pushSubscriptions', subId), {
+        podcasts: podcastUrls
+      }).catch(err => {
+        console.error('Failed to sync push subscriptions:', err);
+      });
+    }
+  }, [subscriptions]);
+
+  useEffect(() => {
+    if (theme === 'default') {
+      document.documentElement.removeAttribute('data-theme');
+    } else {
+      document.documentElement.setAttribute('data-theme', theme);
+    }
+  }, [theme]);
 
   const handleTabChange = (tab: string) => {
     setCurrentTab(tab);
@@ -152,7 +173,7 @@ export default function App() {
   };
 
   return (
-    <div className="bg-zinc-950 min-h-screen text-zinc-100 font-sans">
+    <div className="bg-bg-main min-h-screen text-text-main font-sans">
       <AnimatePresence mode="wait">
         {selectedPodcast ? (
           <motion.div

@@ -3,18 +3,97 @@
 
 @theme {
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
-  --color-accent: var(--app-accent, #8b5cf6);
-  --color-bg-dark: #09090b;
-  --color-bg-card: #18181b;
+  --color-bg-main: var(--bg-main);
+  --color-bg-surface: var(--bg-surface);
+  --color-bg-surface-hover: var(--bg-surface-hover);
+  --color-text-main: var(--text-main);
+  --color-text-muted: var(--text-muted);
+  --color-border-subtle: var(--border-subtle);
+  --color-accent-main: var(--accent-main);
+  --color-accent-text: var(--accent-text);
 }
 
 :root {
-  --app-accent: #8b5cf6;
+  /* Default Dark Theme */
+  --bg-main: #09090b;
+  --bg-surface: #18181b;
+  --bg-surface-hover: #27272a;
+  --text-main: #ffffff;
+  --text-muted: #a1a1aa;
+  --border-subtle: rgba(255, 255, 255, 0.05);
+  --accent-main: #8b5cf6;
+  --accent-text: #ffffff;
+}
+
+[data-theme="frosted-mint"] {
+  --bg-main: #E4FDE1;
+  --bg-surface: #D5F5D2;
+  --bg-surface-hover: #C6EDC3;
+  --text-main: #111D13;
+  --text-muted: #415D43;
+  --border-subtle: #A7DCA5;
+  --accent-main: #90CF8E;
+  --accent-text: #111D13;
+}
+
+[data-theme="lavender-veil"] {
+  --bg-main: #F3DBEA;
+  --bg-surface: #ECC5DD;
+  --bg-surface-hover: #CC9AB5;
+  --text-main: #4A2538;
+  --text-muted: #7A3D5C;
+  --border-subtle: #CC9AB5;
+  --accent-main: #994D74;
+  --accent-text: #ffffff;
+}
+
+[data-theme="alice-blue"] {
+  --bg-main: #E2EFF6;
+  --bg-surface: #B7D7EA;
+  --bg-surface-hover: #8DBEDC;
+  --text-main: #1A364A;
+  --text-muted: #2D5A7B;
+  --border-subtle: #8DBEDC;
+  --accent-main: #4893C6;
+  --accent-text: #ffffff;
+}
+
+[data-theme="almond-cream"] {
+  --bg-main: #EDE0D4;
+  --bg-surface: #E6CCB2;
+  --bg-surface-hover: #DDB892;
+  --text-main: #3E291B;
+  --text-muted: #5C3D29;
+  --border-subtle: #DDB892;
+  --accent-main: #7F5539;
+  --accent-text: #ffffff;
+}
+
+[data-theme="carbon-black"] {
+  --bg-main: #212529;
+  --bg-surface: #343A40;
+  --bg-surface-hover: #495057;
+  --text-main: #F8F9FA;
+  --text-muted: #CED4DA;
+  --border-subtle: #495057;
+  --accent-main: #ADB5BD;
+  --accent-text: #212529;
+}
+
+[data-theme="celadon"] {
+  --bg-main: #111D13;
+  --bg-surface: #415D43;
+  --bg-surface-hover: #709775;
+  --text-main: #E4FDE1;
+  --text-muted: #A1CCA5;
+  --border-subtle: #709775;
+  --accent-main: #8FB996;
+  --accent-text: #111D13;
 }
 
 @layer base {
   body {
-    @apply bg-zinc-950 text-zinc-100 antialiased overflow-x-hidden;
+    @apply bg-bg-main text-text-main antialiased overflow-x-hidden transition-colors duration-300;
     -webkit-tap-highlight-color: transparent;
   }
 
@@ -32,6 +111,6 @@
   }
   
   .glass {
-    @apply bg-zinc-950/80 backdrop-blur-md;
+    @apply bg-bg-main/80 backdrop-blur-md;
   }
 }

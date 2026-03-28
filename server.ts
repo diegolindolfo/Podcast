@@ -2,6 +2,89 @@ import express from 'express';
 import cors from 'cors';
 import Parser from 'rss-parser';
 import { createServer as createViteServer } from 'vite';
+import webpush from 'web-push';
+import cron from 'node-cron';
+import fs from 'fs';
+import path from 'path';
+import { initializeApp } from 'firebase/app';
+import { getFirestore, collection, getDocs } from 'firebase/firestore';
+import { getAuth, signInAnonymously } from 'firebase/auth';
+
+// Read Firebase config
+const firebaseConfig = JSON.parse(fs.readFileSync(path.resolve(process.cwd(), 'firebase-applet-config.json'), 'utf-8'));
+
+// Initialize Firebase Client SDK for the backend
+const firebaseApp = initializeApp(firebaseConfig);
+const db = getFirestore(firebaseApp, firebaseConfig.firestoreDatabaseId);
+const auth = getAuth(firebaseApp);
+
+// VAPID keys for Web Push
+const vapidKeys = {
+  publicKey: process.env.VAPID_PUBLIC_KEY || 'BEl62iUYgUivxIkv69yViEuiBIa-Ib9-SkvMeAtA3LFgDzkrxZJjSgSnfckjBJuBkr3qBUYIHBQFLcg05SRYig',
+  privateKey: process.env.VAPID_PRIVATE_KEY || 'CGcG_epFzG0YBaLpZgXVYEq9VqasTG0RKIyRGG_lIdM'
+};
+
+webpush.setVapidDetails(
+  'mailto:test@example.com',
+  vapidKeys.publicKey,
+  vapidKeys.privateKey
+);
+
+const latestEpisodesCache: Record<string, string> = {};
+
+async function checkFeedsAndNotify(parser: Parser) {
+  console.log('Checking RSS feeds for new episodes...');
+  try {
+    const snapshot = await getDocs(collection(db, 'pushSubscriptions'));
+    const subscriptions: any[] = [];
+    snapshot.forEach(doc => subscriptions.push({ id: doc.id, ...doc.data() }));
+
+    if (subscriptions.length === 0) return;
+
+    const podcastUrls = new Set<string>();
+    subscriptions.forEach(sub => {
+      if (sub.podcasts && Array.isArray(sub.podcasts)) {
+        sub.podcasts.forEach((url: string) => podcastUrls.add(url));
+      }
+    });
+
+    for (const url of podcastUrls) {
+      try {
+        const feed = await parser.parseURL(url);
+        if (feed.items && feed.items.length > 0) {
+          const latestEpisode = feed.items[0];
+          const episodeId = latestEpisode.guid || latestEpisode.link || latestEpisode.title;
+          
+          if (!episodeId) continue;
+
+          if (latestEpisodesCache[url] && latestEpisodesCache[url] !== episodeId) {
+            console.log(`New episode found for ${feed.title}: ${latestEpisode.title}`);
+            const payload = JSON.stringify({
+              title: feed.title || 'Novo Episódio!',
+              body: latestEpisode.title || 'Confira o novo episódio.',
+              icon: '/icon.svg',
+              url: '/'
+            });
+
+            const subscribers = subscriptions.filter(sub => sub.podcasts.includes(url));
+            for (const sub of subscribers) {
+              try {
+                await webpush.sendNotification({ endpoint: sub.endpoint, keys: sub.keys }, payload);
+              } catch (err) {
+                console.error(`Failed to send notification to ${sub.endpoint}:`, err);
+              }
+            }
+          }
+          latestEpisodesCache[url] = episodeId;
+        }
+      } catch (err) {
+        console.error(`Error parsing feed ${url}:`, err);
+      }
+    }
+  } catch (error) {
+    console.error('Error checking feeds:', error);
+  }
+}
 
 async function startServer() {
   const app = express();
@@ -14,6 +97,10 @@ async function startServer() {
       item: ['itunes:image', 'itunes:duration', 'itunes:summary', 'itunes:subtitle', 'enclosure'],
       feed: ['itunes:image', 'image']
     }
+  });
+
+  app.get('/api/vapidPublicKey', (req, res) => {
+    res.json({ publicKey: vapidKeys.publicKey });
   });
 
   app.get('/api/search', async (req, res) => {
@@ -91,11 +178,25 @@ async function startServer() {
     });
     app.use(vite.middlewares);
   } else {
-    app.use(express.static('dist'));
+    const distPath = path.join(process.cwd(), 'dist');
+    app.use(express.static(distPath));
+    app.get('*', (req, res) => {
+      res.sendFile(path.join(distPath, 'index.html'));
+    });
   }
+
+  // Authenticate backend anonymously
+  signInAnonymously(auth).then(() => {
+    console.log('Backend authenticated with Firebase anonymously.');
+  }).catch(console.error);
+
+  // Schedule cron job
+  cron.schedule('*/15 * * * *', () => checkFeedsAndNotify(parser));
 
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`Server running on http://localhost:${PORT}`);
+    // Initial check after 10 seconds
+    setTimeout(() => checkFeedsAndNotify(parser), 10000);
   });
 }
 

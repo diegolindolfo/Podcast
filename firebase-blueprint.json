@@ -1,0 +1,30 @@
+{
+  "entities": {
+    "PushSubscription": {
+      "title": "PushSubscription",
+      "description": "A user's web push subscription",
+      "type": "object",
+      "properties": {
+        "endpoint": { "type": "string" },
+        "keys": {
+          "type": "object",
+          "properties": {
+            "p256dh": { "type": "string" },
+            "auth": { "type": "string" }
+          }
+        },
+        "podcasts": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      },
+      "required": ["endpoint", "keys", "podcasts"]
+    }
+  },
+  "firestore": {
+    "/pushSubscriptions/{subscriptionId}": {
+      "schema": { "$ref": "#/entities/PushSubscription" },
+      "description": "Stores push subscriptions for users"
+    }
+  }
+}

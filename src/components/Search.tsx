@@ -14,7 +14,7 @@ const CATEGORIES = [
   { id: '1318', name: 'Tecnologia', icon: '💻', color: 'bg-blue-500' },
   { id: '1303', name: 'Comédia', icon: '😂', color: 'bg-purple-500' },
   { id: '1489', name: 'Notícias', icon: '📰', color: 'bg-red-500' },
-  { id: '1488', name: 'True Crime', icon: '🕵️', color: 'bg-zinc-800' },
+  { id: '1488', name: 'True Crime', icon: '🕵️', color: 'bg-bg-surface-hover' },
   { id: '1545', name: 'Esportes', icon: '⚽', color: 'bg-green-500' },
   { id: '1321', name: 'Negócios', icon: '💼', color: 'bg-fuchsia-500' },
   { id: '1304', name: 'Educação', icon: '📚', color: 'bg-indigo-500' },
@@ -80,44 +80,44 @@ export function Search({ onSelectPodcast }: SearchProps) {
   };
 
   return (
-    <div className="p-4 pb-24 min-h-screen bg-zinc-950">
-      <div className="sticky top-0 z-10 bg-zinc-950/80 backdrop-blur-md pt-safe pb-4">
-        <h1 className="text-3xl font-bold tracking-tight mb-4 text-white">Descobrir</h1>
+    <div className="p-4 pb-24 min-h-screen bg-bg-main">
+      <div className="sticky top-0 z-10 bg-bg-main/80 backdrop-blur-md pt-safe pb-4">
+        <h1 className="text-3xl font-bold tracking-tight mb-4 text-text-main">Descobrir</h1>
         <div className="relative group">
-          <SearchIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500" size={20} />
+          <SearchIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted" size={20} />
           <input
             type="text"
             placeholder="Buscar podcasts..."
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            className="w-full bg-zinc-900 border border-white/5 rounded-xl py-4 pl-12 pr-4 text-zinc-100 placeholder-zinc-500 focus:outline-none focus:ring-1 focus:ring-accent transition-all"
+            className="w-full bg-bg-surface border border-border-subtle rounded-xl py-4 pl-12 pr-4 text-text-main placeholder-text-muted focus:outline-none focus:ring-1 focus:ring-accent-main transition-all"
           />
         </div>
       </div>
 
       {loading && (
         <div className="flex flex-col items-center justify-center mt-24 gap-4">
-          <Loader2 className="animate-spin text-accent" size={32} />
-          <p className="text-zinc-500 text-sm">Buscando podcasts...</p>
+          <Loader2 className="animate-spin text-accent-main" size={32} />
+          <p className="text-text-muted text-sm">Buscando podcasts...</p>
         </div>
       )}
 
       {!loading && query.length === 0 && !selectedCategory && (
         <div className="mt-6 flex flex-col gap-8">
           <div>
-            <h2 className="text-lg font-bold mb-4 px-1 text-zinc-100">Explorar Categorias</h2>
+            <h2 className="text-lg font-bold mb-4 px-1 text-text-main">Explorar Categorias</h2>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
               {CATEGORIES.map((cat) => (
                 <button
                   key={cat.name}
                   onClick={() => handleCategoryClick(cat)}
                   className={clsx(
-                    "flex flex-col gap-2 p-4 rounded-xl text-left transition-all border border-white/5",
+                    "flex flex-col gap-2 p-4 rounded-xl text-left transition-all border border-border-subtle",
                     cat.color
                   )}
                 >
                   <span className="text-2xl">{cat.icon}</span>
-                  <span className="font-bold text-white text-base">{cat.name}</span>
+                  <span className="font-bold text-text-main text-base">{cat.name}</span>
                 </button>
               ))}
             </div>
@@ -129,13 +129,13 @@ export function Search({ onSelectPodcast }: SearchProps) {
         <div className="mt-2 mb-6 flex items-center gap-3">
           <button 
             onClick={clearCategory}
-            className="p-2 rounded-full bg-zinc-900 text-zinc-300 hover:text-white transition-all border border-white/5"
+            className="p-2 rounded-full bg-bg-surface text-text-muted hover:text-text-main transition-all border border-border-subtle"
           >
             <ChevronLeft size={20} />
           </button>
           <div>
-            <h2 className="text-xl font-bold text-white">{selectedCategory.name}</h2>
-            <p className="text-zinc-500 text-[10px] font-bold uppercase tracking-widest">Top Podcasts</p>
+            <h2 className="text-xl font-bold text-text-main">{selectedCategory.name}</h2>
+            <p className="text-text-muted text-[10px] font-bold uppercase tracking-widest">Top Podcasts</p>
           </div>
         </div>
       )}
@@ -147,7 +147,7 @@ export function Search({ onSelectPodcast }: SearchProps) {
             onClick={() => onSelectPodcast(podcast)}
             className="text-left group flex flex-col"
           >
-            <div className="relative aspect-square rounded-xl overflow-hidden bg-zinc-900 mb-2 border border-white/5">
+            <div className="relative aspect-square rounded-xl overflow-hidden bg-bg-surface mb-2 border border-border-subtle">
               <img
                 src={podcast.artworkUrl600}
                 alt={podcast.collectionName}
@@ -156,15 +156,15 @@ export function Search({ onSelectPodcast }: SearchProps) {
                 referrerPolicy="no-referrer"
               />
               {selectedCategory && (
-                <div className="absolute top-2 left-2 bg-black/80 backdrop-blur-md text-white text-[10px] font-bold px-1.5 py-0.5 rounded-md border border-white/10">
+                <div className="absolute top-2 left-2 bg-bg-main/80 backdrop-blur-md text-text-main text-[10px] font-bold px-1.5 py-0.5 rounded-md border border-border-subtle">
                   #{results.indexOf(podcast) + 1}
                 </div>
               )}
             </div>
-            <h3 className="font-semibold text-sm line-clamp-2 leading-tight group-hover:text-accent transition-colors">
+            <h3 className="font-semibold text-sm line-clamp-2 leading-tight group-hover:text-accent-main transition-colors text-text-main">
               {podcast.collectionName}
             </h3>
-            <p className="text-xs text-zinc-500 truncate mt-1">{podcast.artistName}</p>
+            <p className="text-xs text-text-muted truncate mt-1">{podcast.artistName}</p>
           </button>
         ))}
       </div>
@@ -172,8 +172,8 @@ export function Search({ onSelectPodcast }: SearchProps) {
       {!loading && query.length > 2 && results.length === 0 && (
         <div className="flex flex-col items-center justify-center mt-24 text-center px-4">
           <div className="text-5xl mb-4">🔍</div>
-          <p className="text-zinc-400 font-medium">Nenhum podcast encontrado para "{query}"</p>
-          <p className="text-zinc-600 text-sm mt-1">Tente buscar por outro termo ou categoria.</p>
+          <p className="text-text-muted font-medium">Nenhum podcast encontrado para "{query}"</p>
+          <p className="text-text-muted text-sm mt-1 opacity-70">Tente buscar por outro termo ou categoria.</p>
         </div>
       )}
     </div>
