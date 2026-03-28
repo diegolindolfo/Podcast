@@ -92,6 +92,10 @@ async function startServer() {
 
   app.use(cors());
 
+  app.get('/api/health', (req, res) => {
+    res.json({ status: 'ok', timestamp: new Date().toISOString() });
+  });
+
   const parser = new Parser({
     customFields: {
       item: ['itunes:image', 'itunes:duration', 'itunes:summary', 'itunes:subtitle', 'enclosure'],
