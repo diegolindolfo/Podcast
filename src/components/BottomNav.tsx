@@ -1,4 +1,4 @@
-import { Home, Search, Download, Settings, History } from 'lucide-react';
+import { HomeIcon, DiscoverIcon, DownloadsIcon, HistoryIcon, SettingsIcon } from './CustomIcons';
 import { clsx } from 'clsx';
 
 interface BottomNavProps {
@@ -8,11 +8,11 @@ interface BottomNavProps {
 
 export function BottomNav({ currentTab, onChange }: BottomNavProps) {
   const tabs = [
-    { id: 'home', icon: Home, label: 'Início' },
-    { id: 'search', icon: Search, label: 'Descobrir' },
-    { id: 'downloads', icon: Download, label: 'Downloads' },
-    { id: 'history', icon: History, label: 'Histórico' },
-    { id: 'settings', icon: Settings, label: 'Ajustes' },
+    { id: 'home', icon: HomeIcon, label: 'Início' },
+    { id: 'search', icon: DiscoverIcon, label: 'Descobrir' },
+    { id: 'downloads', icon: DownloadsIcon, label: 'Downloads' },
+    { id: 'history', icon: HistoryIcon, label: 'Histórico' },
+    { id: 'settings', icon: SettingsIcon, label: 'Ajustes' },
   ];
 
   return (
@@ -31,8 +31,7 @@ export function BottomNav({ currentTab, onChange }: BottomNavProps) {
               )}
             >
               <Icon 
-                size={20} 
-                strokeWidth={isActive ? 2.5 : 2} 
+                size={24} 
               />
               <span className="text-[10px] font-medium">{tab.label}</span>
             </button>

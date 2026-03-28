@@ -1,21 +1,25 @@
 import { useStore } from '../store';
 import { 
-  Settings as SettingsIcon, 
   Database, 
   Info, 
   Trash2, 
   Bell, 
   BellRing, 
-  History, 
   Check, 
   X, 
-  Download, 
   Zap, 
   Palette,
   Image as ImageIcon,
   RotateCcw,
   AlertCircle
 } from 'lucide-react';
+import { 
+  HomeIcon, 
+  DiscoverIcon, 
+  DownloadsIcon, 
+  HistoryIcon, 
+  SettingsIcon as CustomSettingsIcon 
+} from './CustomIcons';
 import { deleteDownloadedEpisode } from '../services/downloader';
 import { useState, useEffect, ReactNode } from 'react';
 import { clsx } from 'clsx';
@@ -314,7 +318,7 @@ export function Settings() {
         {/* Intelligent Management Section */}
         <Section title="Gerenciamento Inteligente">
           <SettingItem 
-            icon={<Download size={20} />}
+            icon={<DownloadsIcon size={20} />}
             title="Auto-download"
             subtitle="Baixar novos episódios automaticamente"
             active={settings.autoDownload}
@@ -376,7 +380,7 @@ export function Settings() {
         {/* Storage Section */}
         <Section title="Armazenamento">
           <SettingItem 
-            icon={<Database size={20} />}
+            icon={<DownloadsIcon size={20} />}
             title="Áudio Baixado"
             subtitle={`${formattedSize} MB utilizados`}
             active={true}
@@ -413,7 +417,7 @@ export function Settings() {
           </SettingItem>
           <Divider />
           <SettingItem 
-            icon={<SettingsIcon size={20} />}
+            icon={<CustomSettingsIcon size={20} />}
             title="Inscrições"
             subtitle={`${subscriptions.length} podcasts na biblioteca`}
           >
@@ -432,7 +436,7 @@ export function Settings() {
           </SettingItem>
           <Divider />
           <SettingItem 
-            icon={<History size={20} />}
+            icon={<HistoryIcon size={20} />}
             title="Histórico"
             subtitle={`${history.length} episódios registrados`}
           >

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useStore } from '../store';
-import { Play, Pause, Trash2, History as HistoryIcon, X, Check } from 'lucide-react';
+import { Play, Pause, Trash2, X, Check } from 'lucide-react';
+import { HistoryIcon } from './CustomIcons';
 import { clsx } from 'clsx';
 
 import { motion, AnimatePresence } from 'motion/react';
@@ -67,7 +68,7 @@ export function History() {
       {history.length === 0 ? (
         <div className="flex flex-col items-center justify-center h-[60vh] text-center px-4">
           <div className="w-24 h-24 bg-bg-surface rounded-full flex items-center justify-center mb-6 border border-border-subtle shadow-2xl">
-            <HistoryIcon size={40} className="text-text-muted opacity-50" />
+            <HistoryIcon size={60} className="text-text-muted opacity-50" />
           </div>
           <h2 className="text-2xl font-bold mb-3 text-text-main">Histórico Vazio</h2>
           <p className="text-text-muted text-base max-w-sm leading-relaxed">

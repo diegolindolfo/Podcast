@@ -113,4 +113,9 @@
   .glass {
     @apply bg-bg-main/80 backdrop-blur-md;
   }
+
+  @keyframes music-bar {
+    0%, 100% { height: 4px; }
+    50% { height: 16px; }
+  }
 }

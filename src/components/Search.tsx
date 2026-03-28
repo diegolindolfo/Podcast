@@ -10,15 +10,15 @@ interface SearchProps {
 }
 
 const CATEGORIES = [
-  { id: '', name: 'Top Brasil', icon: '🇧🇷', color: 'bg-amber-500' },
-  { id: '1318', name: 'Tecnologia', icon: '💻', color: 'bg-blue-500' },
-  { id: '1303', name: 'Comédia', icon: '😂', color: 'bg-purple-500' },
-  { id: '1489', name: 'Notícias', icon: '📰', color: 'bg-red-500' },
-  { id: '1488', name: 'True Crime', icon: '🕵️', color: 'bg-bg-surface-hover' },
-  { id: '1545', name: 'Esportes', icon: '⚽', color: 'bg-green-500' },
-  { id: '1321', name: 'Negócios', icon: '💼', color: 'bg-fuchsia-500' },
-  { id: '1304', name: 'Educação', icon: '📚', color: 'bg-indigo-500' },
-  { id: '1512', name: 'Saúde', icon: '💪', color: 'bg-rose-500' },
+  { id: '', name: 'Top Brasil', icon: '🇧🇷', color: 'bg-accent-main/20 border-accent-main/20' },
+  { id: '1318', name: 'Tecnologia', icon: '💻', color: 'bg-accent-main/20 border-accent-main/20' },
+  { id: '1303', name: 'Comédia', icon: '😂', color: 'bg-accent-main/20 border-accent-main/20' },
+  { id: '1489', name: 'Notícias', icon: '📰', color: 'bg-accent-main/20 border-accent-main/20' },
+  { id: '1488', name: 'True Crime', icon: '🕵️', color: 'bg-bg-surface-hover border-border-subtle' },
+  { id: '1545', name: 'Esportes', icon: '⚽', color: 'bg-accent-main/20 border-accent-main/20' },
+  { id: '1321', name: 'Negócios', icon: '💼', color: 'bg-accent-main/20 border-accent-main/20' },
+  { id: '1304', name: 'Educação', icon: '📚', color: 'bg-accent-main/20 border-accent-main/20' },
+  { id: '1512', name: 'Saúde', icon: '💪', color: 'bg-accent-main/20 border-accent-main/20' },
 ];
 
 import { motion } from 'motion/react';

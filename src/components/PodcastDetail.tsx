@@ -168,7 +168,7 @@ export function PodcastDetail({ podcast, onBack }: PodcastDetailProps) {
                 "px-6 py-2 rounded-full text-sm font-semibold transition-all active:scale-95",
                 isSubscribed 
                   ? "bg-bg-surface-hover text-text-muted" 
-                  : "bg-text-main text-bg-main hover:opacity-90"
+                  : "bg-accent-main text-accent-text hover:opacity-90"
               )}
             >
               {isSubscribed ? "Inscrito" : "Inscrever-se"}
