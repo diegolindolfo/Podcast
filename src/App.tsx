@@ -9,7 +9,8 @@ import { Player } from './components/Player';
 import { PodcastDetail } from './components/PodcastDetail';
 import { useStore } from './store';
 import { Podcast } from './types';
-import { deleteDownloadedEpisode } from './services/downloader';
+import { deleteDownloadedEpisode, downloadEpisode } from './services/downloader';
+import { getPodcastFeed } from './services/api';
 import { db } from './firebase';
 import { doc, updateDoc } from 'firebase/firestore';
 
@@ -82,9 +83,6 @@ export default function App() {
 
     const checkAndDownload = async () => {
       const { subscriptions, downloads } = useStore.getState();
-      const { getPodcastFeed } = await import('./services/api');
-      const { downloadEpisode } = await import('./services/downloader');
-
       for (const podcast of subscriptions) {
         try {
           const feed = await getPodcastFeed(podcast.feedUrl);
@@ -193,7 +191,7 @@ export default function App() {
             exit={{ opacity: 0, y: -10 }}
             transition={{ duration: 0.2 }}
           >
-            {currentTab === 'home' && <Home onSelectPodcast={handleSelectPodcast} />}
+            {currentTab === 'home' && <Home onSelectPodcast={handleSelectPodcast} onGoToSearch={() => handleTabChange('search')} />}
             {currentTab === 'search' && <Search onSelectPodcast={handleSelectPodcast} />}
             {currentTab === 'downloads' && <Downloads />}
             {currentTab === 'history' && <History />}
