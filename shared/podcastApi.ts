@@ -113,6 +113,15 @@ export function registerPodcastApi(app: Express): void {
         }
 
         const contentType = response.headers.get('content-type') || '';
+        const xml = await response.text();
+        const looksLikeXml = xml.trimStart().startsWith('<');
+
+        if (xml.length > 10_000_000) {
+          throw new Error('Feed response too large');
+        }
+
+        if (contentType && !/xml|rss|atom|text\//i.test(contentType) && !looksLikeXml) {
+          throw new Error(`Unexpected content-type: ${contentType}`);
         if (!/xml|rss|atom|text\//i.test(contentType)) {
           throw new Error(`Unexpected content-type: ${contentType}`);
         }

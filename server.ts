@@ -13,6 +13,7 @@ import { registerPodcastApi } from './shared/podcastApi';
 
 const vapidPublicKey = process.env.VAPID_PUBLIC_KEY;
 const vapidPrivateKey = process.env.VAPID_PRIVATE_KEY;
+const hasVapidKeys = Boolean(vapidPublicKey && vapidPrivateKey);
 
 if (!vapidPublicKey || !vapidPrivateKey) {
   throw new Error('Missing VAPID_PUBLIC_KEY and/or VAPID_PRIVATE_KEY environment variables.');
@@ -24,11 +25,17 @@ const firebaseApp = initializeApp(firebaseConfig);
 const db = getFirestore(firebaseApp, firebaseConfig.firestoreDatabaseId);
 const auth = getAuth(firebaseApp);
 
+if (hasVapidKeys) {
+  webpush.setVapidDetails('mailto:test@example.com', vapidPublicKey!, vapidPrivateKey!);
+} else {
+  console.warn('VAPID keys are missing. Push notifications are disabled, but API/search remain available.');
+}
 webpush.setVapidDetails('mailto:test@example.com', vapidPublicKey, vapidPrivateKey);
 
 const latestEpisodesCache: Record<string, string> = {};
 
 async function checkFeedsAndNotify(parser: Parser) {
+  if (!hasVapidKeys) return;
   console.log('Checking RSS feeds for new episodes...');
   try {
     const snapshot = await getDocs(collection(db, 'pushSubscriptions'));
@@ -93,6 +100,14 @@ async function startServer() {
   });
 
   app.get('/api/vapidPublicKey', (_req, res) => {
+    if (!vapidPublicKey) {
+      return res.status(503).json({ error: 'Push notifications are not configured on this server.' });
+    }
+    return res.json({ publicKey: vapidPublicKey });
+  });
+
+  registerPodcastApi(app);
+
     res.json({ publicKey: vapidPublicKey });
   });
 
