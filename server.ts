@@ -9,26 +9,22 @@ import path from 'path';
 import { initializeApp } from 'firebase/app';
 import { getFirestore, collection, getDocs } from 'firebase/firestore';
 import { getAuth, signInAnonymously } from 'firebase/auth';
+import { registerPodcastApi } from './shared/podcastApi';
 
-// Read Firebase config
+const vapidPublicKey = process.env.VAPID_PUBLIC_KEY;
+const vapidPrivateKey = process.env.VAPID_PRIVATE_KEY;
+
+if (!vapidPublicKey || !vapidPrivateKey) {
+  throw new Error('Missing VAPID_PUBLIC_KEY and/or VAPID_PRIVATE_KEY environment variables.');
+}
+
 const firebaseConfig = JSON.parse(fs.readFileSync(path.resolve(process.cwd(), 'firebase-applet-config.json'), 'utf-8'));
 
-// Initialize Firebase Client SDK for the backend
 const firebaseApp = initializeApp(firebaseConfig);
 const db = getFirestore(firebaseApp, firebaseConfig.firestoreDatabaseId);
 const auth = getAuth(firebaseApp);
 
-// VAPID keys for Web Push
-const vapidKeys = {
-  publicKey: process.env.VAPID_PUBLIC_KEY || 'BEl62iUYgUivxIkv69yViEuiBIa-Ib9-SkvMeAtA3LFgDzkrxZJjSgSnfckjBJuBkr3qBUYIHBQFLcg05SRYig',
-  privateKey: process.env.VAPID_PRIVATE_KEY || 'CGcG_epFzG0YBaLpZgXVYEq9VqasTG0RKIyRGG_lIdM'
-};
-
-webpush.setVapidDetails(
-  'mailto:test@example.com',
-  vapidKeys.publicKey,
-  vapidKeys.privateKey
-);
+webpush.setVapidDetails('mailto:test@example.com', vapidPublicKey, vapidPrivateKey);
 
 const latestEpisodesCache: Record<string, string> = {};
 
@@ -37,12 +33,12 @@ async function checkFeedsAndNotify(parser: Parser) {
   try {
     const snapshot = await getDocs(collection(db, 'pushSubscriptions'));
     const subscriptions: any[] = [];
-    snapshot.forEach(doc => subscriptions.push({ id: doc.id, ...doc.data() }));
+    snapshot.forEach((doc) => subscriptions.push({ id: doc.id, ...doc.data() }));
 
     if (subscriptions.length === 0) return;
 
     const podcastUrls = new Set<string>();
-    subscriptions.forEach(sub => {
+    subscriptions.forEach((sub) => {
       if (sub.podcasts && Array.isArray(sub.podcasts)) {
         sub.podcasts.forEach((url: string) => podcastUrls.add(url));
       }
@@ -54,7 +50,7 @@ async function checkFeedsAndNotify(parser: Parser) {
         if (feed.items && feed.items.length > 0) {
           const latestEpisode = feed.items[0];
           const episodeId = latestEpisode.guid || latestEpisode.link || latestEpisode.title;
-          
+
           if (!episodeId) continue;
 
           if (latestEpisodesCache[url] && latestEpisodesCache[url] !== episodeId) {
@@ -63,10 +59,10 @@ async function checkFeedsAndNotify(parser: Parser) {
               title: feed.title || 'Novo Episódio!',
               body: latestEpisode.title || 'Confira o novo episódio.',
               icon: '/icon.svg',
-              url: '/'
+              url: '/',
             });
 
-            const subscribers = subscriptions.filter(sub => sub.podcasts.includes(url));
+            const subscribers = subscriptions.filter((sub) => sub.podcasts.includes(url));
             for (const sub of subscribers) {
               try {
                 await webpush.sendNotification({ endpoint: sub.endpoint, keys: sub.keys }, payload);
@@ -92,87 +88,21 @@ async function startServer() {
 
   app.use(cors());
 
-  app.get('/api/health', (req, res) => {
+  app.get('/api/health', (_req, res) => {
     res.json({ status: 'ok', timestamp: new Date().toISOString() });
   });
+
+  app.get('/api/vapidPublicKey', (_req, res) => {
+    res.json({ publicKey: vapidPublicKey });
+  });
+
+  registerPodcastApi(app);
 
   const parser = new Parser({
     customFields: {
       item: ['itunes:image', 'itunes:duration', 'itunes:summary', 'itunes:subtitle', 'enclosure'],
-      feed: ['itunes:image', 'image']
-    }
-  });
-
-  app.get('/api/vapidPublicKey', (req, res) => {
-    res.json({ publicKey: vapidKeys.publicKey });
-  });
-
-  app.get('/api/search', async (req, res) => {
-    try {
-      const { q } = req.query;
-      if (!q) return res.json({ results: [] });
-      const response = await fetch(`https://itunes.apple.com/search?media=podcast&term=${encodeURIComponent(q as string)}&country=br`);
-      const data = await response.json();
-      res.json(data);
-    } catch (error) {
-      console.error('Search error:', error);
-      res.status(500).json({ error: 'Failed to search' });
-    }
-  });
-
-  app.get('/api/feed', async (req, res) => {
-    try {
-      const { url } = req.query;
-      if (!url) return res.status(400).json({ error: 'URL is required' });
-      
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 30000); // 30s timeout
-
-      try {
-        const response = await fetch(url as string, {
-          headers: {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-            'Accept': 'application/rss+xml, application/xml, text/xml, */*'
-          },
-          signal: controller.signal
-        });
-
-        if (!response.ok) {
-          throw new Error(`Failed to fetch feed: ${response.status} ${response.statusText}`);
-        }
-
-        const xml = await response.text();
-        const feed = await parser.parseString(xml.trim());
-        res.json(feed);
-      } finally {
-        clearTimeout(timeout);
-      }
-    } catch (error) {
-      console.error('Feed error:', error);
-      res.status(500).json({ error: 'Failed to parse feed' });
-    }
-  });
-
-  app.get('/api/top', async (req, res) => {
-    try {
-      const { genre } = req.query;
-      const genreParam = genre ? `/genre=${genre}` : '';
-      const rssResponse = await fetch(`https://itunes.apple.com/br/rss/toppodcasts/limit=50${genreParam}/json`);
-      const rssData = await rssResponse.json();
-      
-      const entries = rssData.feed?.entry || [];
-      const ids = entries.map((e: any) => e.id.attributes['im:id']).join(',');
-      
-      if (!ids) return res.json({ results: [] });
-      
-      const lookupResponse = await fetch(`https://itunes.apple.com/lookup?id=${ids}&country=br`);
-      const lookupData = await lookupResponse.json();
-      
-      res.json(lookupData);
-    } catch (error) {
-      console.error('Top podcasts error:', error);
-      res.status(500).json({ error: 'Failed to fetch top podcasts' });
-    }
+      feed: ['itunes:image', 'image'],
+    },
   });
 
   if (process.env.NODE_ENV !== 'production') {
@@ -184,22 +114,21 @@ async function startServer() {
   } else {
     const distPath = path.join(process.cwd(), 'dist');
     app.use(express.static(distPath));
-    app.get('*', (req, res) => {
+    app.get('*', (_req, res) => {
       res.sendFile(path.join(distPath, 'index.html'));
     });
   }
 
-  // Authenticate backend anonymously
-  signInAnonymously(auth).then(() => {
-    console.log('Backend authenticated with Firebase anonymously.');
-  }).catch(console.error);
+  signInAnonymously(auth)
+    .then(() => {
+      console.log('Backend authenticated with Firebase anonymously.');
+    })
+    .catch(console.error);
 
-  // Schedule cron job
   cron.schedule('*/15 * * * *', () => checkFeedsAndNotify(parser));
 
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`Server running on http://localhost:${PORT}`);
-    // Initial check after 10 seconds
     setTimeout(() => checkFeedsAndNotify(parser), 10000);
   });
 }
