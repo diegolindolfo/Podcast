@@ -1,12 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import { Home } from './components/Home';
-import { Search } from './components/Search';
-import { Downloads } from './components/Downloads';
-import { History } from './components/History';
-import { Settings } from './components/Settings';
 import { BottomNav } from './components/BottomNav';
 import { Player } from './components/Player';
-import { PodcastDetail } from './components/PodcastDetail';
 import { useStore } from './store';
 import { Podcast } from './types';
 import { deleteDownloadedEpisode, downloadEpisode } from './services/downloader';
@@ -15,6 +10,12 @@ import { db } from './firebase';
 import { doc, updateDoc } from 'firebase/firestore';
 
 import { motion, AnimatePresence } from 'motion/react';
+
+const Search = lazy(() => import('./components/Search').then((m) => ({ default: m.Search })));
+const Downloads = lazy(() => import('./components/Downloads').then((m) => ({ default: m.Downloads })));
+const History = lazy(() => import('./components/History').then((m) => ({ default: m.History })));
+const Settings = lazy(() => import('./components/Settings').then((m) => ({ default: m.Settings })));
+const PodcastDetail = lazy(() => import('./components/PodcastDetail').then((m) => ({ default: m.PodcastDetail })));
 
 export default function App() {
   const [currentTab, setCurrentTab] = useState('home');
@@ -181,7 +182,7 @@ export default function App() {
             exit={{ opacity: 0, x: -20 }}
             transition={{ duration: 0.2 }}
           >
-            <PodcastDetail podcast={selectedPodcast} onBack={handleBack} />
+            <Suspense fallback={<div className="p-4 text-text-muted">Carregando...</div>}><PodcastDetail podcast={selectedPodcast} onBack={handleBack} /></Suspense>
           </motion.div>
         ) : (
           <motion.div
@@ -192,10 +193,10 @@ export default function App() {
             transition={{ duration: 0.2 }}
           >
             {currentTab === 'home' && <Home onSelectPodcast={handleSelectPodcast} onGoToSearch={() => handleTabChange('search')} />}
-            {currentTab === 'search' && <Search onSelectPodcast={handleSelectPodcast} />}
-            {currentTab === 'downloads' && <Downloads />}
-            {currentTab === 'history' && <History />}
-            {currentTab === 'settings' && <Settings />}
+            {currentTab === 'search' && <Suspense fallback={<div className="p-4 text-text-muted">Carregando...</div>}><Search onSelectPodcast={handleSelectPodcast} /></Suspense>}
+            {currentTab === 'downloads' && <Suspense fallback={<div className="p-4 text-text-muted">Carregando...</div>}><Downloads /></Suspense>}
+            {currentTab === 'history' && <Suspense fallback={<div className="p-4 text-text-muted">Carregando...</div>}><History /></Suspense>}
+            {currentTab === 'settings' && <Suspense fallback={<div className="p-4 text-text-muted">Carregando...</div>}><Settings /></Suspense>}
           </motion.div>
         )}
       </AnimatePresence>
