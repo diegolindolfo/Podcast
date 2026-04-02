@@ -15,6 +15,10 @@ const vapidPublicKey = process.env.VAPID_PUBLIC_KEY;
 const vapidPrivateKey = process.env.VAPID_PRIVATE_KEY;
 const hasVapidKeys = Boolean(vapidPublicKey && vapidPrivateKey);
 
+if (!vapidPublicKey || !vapidPrivateKey) {
+  throw new Error('Missing VAPID_PUBLIC_KEY and/or VAPID_PRIVATE_KEY environment variables.');
+}
+
 const firebaseConfig = JSON.parse(fs.readFileSync(path.resolve(process.cwd(), 'firebase-applet-config.json'), 'utf-8'));
 
 const firebaseApp = initializeApp(firebaseConfig);
@@ -26,6 +30,7 @@ if (hasVapidKeys) {
 } else {
   console.warn('VAPID keys are missing. Push notifications are disabled, but API/search remain available.');
 }
+webpush.setVapidDetails('mailto:test@example.com', vapidPublicKey, vapidPrivateKey);
 
 const latestEpisodesCache: Record<string, string> = {};
 
@@ -99,6 +104,11 @@ async function startServer() {
       return res.status(503).json({ error: 'Push notifications are not configured on this server.' });
     }
     return res.json({ publicKey: vapidPublicKey });
+  });
+
+  registerPodcastApi(app);
+
+    res.json({ publicKey: vapidPublicKey });
   });
 
   registerPodcastApi(app);

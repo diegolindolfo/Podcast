@@ -1,5 +1,6 @@
 import type { Express, Request, Response } from 'express';
 import Parser from 'rss-parser';
+import dns from 'node:dns/promises';
 import net from 'node:net';
 
 const parser = new Parser({
@@ -60,6 +61,17 @@ async function validateFeedUrl(rawUrl: string): Promise<URL> {
     throw new Error('Private IPv6 ranges are blocked');
   }
 
+  const records = await dns.lookup(hostname, { all: true });
+  if (records.length === 0) {
+    throw new Error('Host did not resolve to an IP');
+  }
+
+  for (const record of records) {
+    if ((record.family === 4 && isPrivateIPv4(record.address)) || (record.family === 6 && isPrivateIPv6(record.address))) {
+      throw new Error('Resolved private IP is blocked');
+    }
+  }
+
   return parsed;
 }
 
@@ -110,6 +122,13 @@ export function registerPodcastApi(app: Express): void {
 
         if (contentType && !/xml|rss|atom|text\//i.test(contentType) && !looksLikeXml) {
           throw new Error(`Unexpected content-type: ${contentType}`);
+        if (!/xml|rss|atom|text\//i.test(contentType)) {
+          throw new Error(`Unexpected content-type: ${contentType}`);
+        }
+
+        const xml = await response.text();
+        if (xml.length > 2_000_000) {
+          throw new Error('Feed response too large');
         }
 
         const feed = await parser.parseString(xml.trim());
