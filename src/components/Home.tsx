@@ -6,11 +6,12 @@ import { downloadEpisode } from '../services/downloader';
 
 interface HomeProps {
   onSelectPodcast: (podcast: Podcast) => void;
+  onGoToSearch?: () => void;
 }
 
 import { motion } from 'motion/react';
 
-export function Home({ onSelectPodcast }: HomeProps) {
+export function Home({ onSelectPodcast, onGoToSearch }: HomeProps) {
   const { 
     subscriptions, 
     podcastLastViewed, 
@@ -30,9 +31,15 @@ export function Home({ onSelectPodcast }: HomeProps) {
             <span className="text-3xl">🎧</span>
           </div>
           <h2 className="text-xl font-bold mb-2 text-text-main">Nenhuma Inscrição</h2>
-          <p className="text-text-muted text-sm max-w-xs">
+          <p className="text-text-muted text-sm max-w-xs mb-5">
             Pesquise por seus podcasts favoritos na aba Descobrir e inscreva-se para acompanhá-los aqui.
           </p>
+          <button
+            onClick={onGoToSearch}
+            className="px-4 py-2 rounded-full bg-accent-main text-accent-text text-sm font-semibold hover:opacity-90 active:scale-[0.98] transition"
+          >
+            Ir para Descobrir
+          </button>
         </div>
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">

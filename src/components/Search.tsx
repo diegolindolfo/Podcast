@@ -141,7 +141,7 @@ export function Search({ onSelectPodcast }: SearchProps) {
       )}
 
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 mt-4">
-        {results.map((podcast) => (
+        {results.map((podcast, index) => (
           <button
             key={podcast.collectionId}
             onClick={() => onSelectPodcast(podcast)}
@@ -157,7 +157,7 @@ export function Search({ onSelectPodcast }: SearchProps) {
               />
               {selectedCategory && (
                 <div className="absolute top-2 left-2 bg-bg-main/80 backdrop-blur-md text-text-main text-[10px] font-bold px-1.5 py-0.5 rounded-md border border-border-subtle">
-                  #{results.indexOf(podcast) + 1}
+                  #{index + 1}
                 </div>
               )}
             </div>
