@@ -14,21 +14,29 @@ import { registerPodcastApi } from './shared/podcastApi';
 const vapidPublicKey = process.env.VAPID_PUBLIC_KEY;
 const vapidPrivateKey = process.env.VAPID_PRIVATE_KEY;
 
-if (!vapidPublicKey || !vapidPrivateKey) {
-  throw new Error('Missing VAPID_PUBLIC_KEY and/or VAPID_PRIVATE_KEY environment variables.');
+// Push notifications are optional — server still starts without VAPID keys
+const pushEnabled = !!(vapidPublicKey && vapidPrivateKey);
+
+if (!pushEnabled) {
+  console.warn('⚠️  VAPID_PUBLIC_KEY / VAPID_PRIVATE_KEY not set — push notifications disabled.');
+  console.warn('   Run: npx web-push generate-vapid-keys  and add the keys to .env.local');
+} else {
+  webpush.setVapidDetails('mailto:test@example.com', vapidPublicKey!, vapidPrivateKey!);
 }
 
-const firebaseConfig = JSON.parse(fs.readFileSync(path.resolve(process.cwd(), 'firebase-applet-config.json'), 'utf-8'));
+const firebaseConfig = JSON.parse(
+  fs.readFileSync(path.resolve(process.cwd(), 'firebase-applet-config.json'), 'utf-8')
+);
 
 const firebaseApp = initializeApp(firebaseConfig);
 const db = getFirestore(firebaseApp, firebaseConfig.firestoreDatabaseId);
 const auth = getAuth(firebaseApp);
 
-webpush.setVapidDetails('mailto:test@example.com', vapidPublicKey, vapidPrivateKey);
-
 const latestEpisodesCache: Record<string, string> = {};
 
 async function checkFeedsAndNotify(parser: Parser) {
+  if (!pushEnabled) return; // No-op when push is not configured
+
   console.log('Checking RSS feeds for new episodes...');
   try {
     const snapshot = await getDocs(collection(db, 'pushSubscriptions'));
@@ -89,10 +97,13 @@ async function startServer() {
   app.use(cors());
 
   app.get('/api/health', (_req, res) => {
-    res.json({ status: 'ok', timestamp: new Date().toISOString() });
+    res.json({ status: 'ok', timestamp: new Date().toISOString(), push: pushEnabled });
   });
 
   app.get('/api/vapidPublicKey', (_req, res) => {
+    if (!pushEnabled) {
+      return res.status(503).json({ error: 'Push notifications not configured on this server.' });
+    }
     res.json({ publicKey: vapidPublicKey });
   });
 
@@ -125,11 +136,15 @@ async function startServer() {
     })
     .catch(console.error);
 
-  cron.schedule('*/15 * * * *', () => checkFeedsAndNotify(parser));
+  if (pushEnabled) {
+    cron.schedule('*/15 * * * *', () => checkFeedsAndNotify(parser));
+  }
 
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`Server running on http://localhost:${PORT}`);
-    setTimeout(() => checkFeedsAndNotify(parser), 10000);
+    if (pushEnabled) {
+      setTimeout(() => checkFeedsAndNotify(parser), 10000);
+    }
   });
 }
 
