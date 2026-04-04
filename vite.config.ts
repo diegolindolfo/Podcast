@@ -45,13 +45,11 @@ export default defineConfig(({mode}) => {
       rollupOptions: {
         output: {
           manualChunks: {
-            'react-vendor': ['react', 'react-dom'],
-            'firebase-vendor': ['firebase/app', 'firebase/auth', 'firebase/firestore'],
-            'motion-vendor': ['motion/react'],
-            'date-vendor': ['date-fns'],
-          },
-        },
-      },
+            vendor: ['react', 'react-dom', 'zustand', 'motion/react', 'lucide-react'],
+            firebase: ['firebase/app', 'firebase/firestore', 'firebase/auth']
+          }
+        }
+      }
     },
     server: {
       // HMR is disabled in AI Studio via DISABLE_HMR env var.

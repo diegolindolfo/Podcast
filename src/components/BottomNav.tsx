@@ -16,7 +16,7 @@ export function BottomNav({ currentTab, onChange }: BottomNavProps) {
   ];
 
   return (
-    <nav aria-label="Navegação principal" className="fixed bottom-0 left-0 right-0 bg-bg-main/90 backdrop-blur-lg pb-safe z-40 border-t border-border-subtle">
+    <nav className="fixed bottom-0 left-0 right-0 bg-bg-main/90 backdrop-blur-lg pb-safe z-40 border-t border-border-subtle">
       <div className="flex justify-around items-center h-16 max-w-lg mx-auto">
         {tabs.map((tab) => {
           const Icon = tab.icon;
@@ -25,14 +25,11 @@ export function BottomNav({ currentTab, onChange }: BottomNavProps) {
             <button
               key={tab.id}
               onClick={() => onChange(tab.id)}
-              aria-current={isActive ? 'page' : undefined}
-              aria-label={tab.label}
               className={clsx(
-                'relative flex flex-col items-center justify-center w-full h-full space-y-1 transition-all rounded-xl mx-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-main/60',
-                isActive ? 'text-accent-main bg-accent-main/10' : 'text-text-muted hover:text-text-main hover:bg-bg-surface/50'
+                'flex flex-col items-center justify-center w-full h-full space-y-1 transition-colors',
+                isActive ? 'text-accent-main' : 'text-text-muted hover:text-text-main'
               )}
             >
-              {isActive && <span className="absolute top-1 w-8 h-0.5 rounded-full bg-accent-main" />}
               <Icon 
                 size={24} 
               />

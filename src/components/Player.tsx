@@ -109,27 +109,20 @@ export function Player() {
 
   useEffect(() => {
     if (!currentEpisode) return;
-
+    
     let active = true;
-    let localObjectUrl: string | null = null;
     hasRestoredProgress.current = false;
-
+    
     const loadAudio = async () => {
       const cachedUrl = await getCachedAudioUrl(currentEpisode.audioUrl);
-      if (cachedUrl?.startsWith('blob:')) {
-        localObjectUrl = cachedUrl;
-      }
       if (active) {
         setAudioSrc(cachedUrl || currentEpisode.audioUrl);
       }
     };
     loadAudio();
-
+    
     return () => {
       active = false;
-      if (localObjectUrl) {
-        URL.revokeObjectURL(localObjectUrl);
-      }
     };
   }, [currentEpisode]);
 

@@ -4,18 +4,26 @@ import { BottomNav } from './components/BottomNav';
 import { Player } from './components/Player';
 import { useStore } from './store';
 import { Podcast } from './types';
-import { deleteDownloadedEpisode, downloadEpisode } from './services/downloader';
-import { getPodcastFeed } from './services/api';
+import { deleteDownloadedEpisode } from './services/downloader';
 import { db } from './firebase';
 import { doc, updateDoc } from 'firebase/firestore';
 
 import { motion, AnimatePresence } from 'motion/react';
 
-const Search = lazy(() => import('./components/Search').then((m) => ({ default: m.Search })));
-const Downloads = lazy(() => import('./components/Downloads').then((m) => ({ default: m.Downloads })));
-const History = lazy(() => import('./components/History').then((m) => ({ default: m.History })));
-const Settings = lazy(() => import('./components/Settings').then((m) => ({ default: m.Settings })));
-const PodcastDetail = lazy(() => import('./components/PodcastDetail').then((m) => ({ default: m.PodcastDetail })));
+// Lazy load components that are not needed immediately
+const Search = lazy(() => import('./components/Search').then(m => ({ default: m.Search })));
+const Downloads = lazy(() => import('./components/Downloads').then(m => ({ default: m.Downloads })));
+const History = lazy(() => import('./components/History').then(m => ({ default: m.History })));
+const Settings = lazy(() => import('./components/Settings').then(m => ({ default: m.Settings })));
+const PodcastDetail = lazy(() => import('./components/PodcastDetail').then(m => ({ default: m.PodcastDetail })));
+
+
+// Simple loading spinner for suspense fallback
+const LoadingFallback = () => (
+  <div className="flex items-center justify-center h-full min-h-[50vh]">
+    <div className="w-8 h-8 border-4 border-accent-main border-t-transparent rounded-full animate-spin"></div>
+  </div>
+);
 
 export default function App() {
   const [currentTab, setCurrentTab] = useState('home');
@@ -84,6 +92,9 @@ export default function App() {
 
     const checkAndDownload = async () => {
       const { subscriptions, downloads } = useStore.getState();
+      const { getPodcastFeed } = await import('./services/api');
+      const { downloadEpisode } = await import('./services/downloader');
+
       for (const podcast of subscriptions) {
         try {
           const feed = await getPodcastFeed(podcast.feedUrl);
@@ -182,7 +193,9 @@ export default function App() {
             exit={{ opacity: 0, x: -20 }}
             transition={{ duration: 0.2 }}
           >
-            <Suspense fallback={<div className="p-4 text-text-muted">Carregando...</div>}><PodcastDetail podcast={selectedPodcast} onBack={handleBack} /></Suspense>
+            <Suspense fallback={<LoadingFallback />}>
+              <PodcastDetail podcast={selectedPodcast} onBack={handleBack} />
+            </Suspense>
           </motion.div>
         ) : (
           <motion.div
@@ -192,11 +205,13 @@ export default function App() {
             exit={{ opacity: 0, y: -10 }}
             transition={{ duration: 0.2 }}
           >
-            {currentTab === 'home' && <Home onSelectPodcast={handleSelectPodcast} onGoToSearch={() => handleTabChange('search')} />}
-            {currentTab === 'search' && <Suspense fallback={<div className="p-4 text-text-muted">Carregando...</div>}><Search onSelectPodcast={handleSelectPodcast} /></Suspense>}
-            {currentTab === 'downloads' && <Suspense fallback={<div className="p-4 text-text-muted">Carregando...</div>}><Downloads /></Suspense>}
-            {currentTab === 'history' && <Suspense fallback={<div className="p-4 text-text-muted">Carregando...</div>}><History /></Suspense>}
-            {currentTab === 'settings' && <Suspense fallback={<div className="p-4 text-text-muted">Carregando...</div>}><Settings /></Suspense>}
+            <Suspense fallback={<LoadingFallback />}>
+              {currentTab === 'home' && <Home onSelectPodcast={handleSelectPodcast} />}
+              {currentTab === 'search' && <Search onSelectPodcast={handleSelectPodcast} />}
+              {currentTab === 'downloads' && <Downloads />}
+              {currentTab === 'history' && <History />}
+              {currentTab === 'settings' && <Settings />}
+            </Suspense>
           </motion.div>
         )}
       </AnimatePresence>
