@@ -240,16 +240,16 @@ export function Player() {
         }}
       />
 
-      <div 
-        className={clsx(
-          "fixed left-0 right-0 z-50 transition-all duration-300",
-          isExpanded 
-            ? "bottom-0 h-screen bg-bg-main" 
-            : "bottom-16 h-16 bg-bg-surface/95 backdrop-blur-lg mx-2 mb-2 rounded-xl border border-border-subtle shadow-lg"
-        )}
-      >
+      {/* Mini Player */}
+      <AnimatePresence>
         {!isExpanded && (
-          <div className="flex items-center h-full px-4 cursor-pointer" onClick={() => setIsExpanded(true)}>
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 20 }}
+            className="fixed left-0 right-0 bottom-16 h-16 bg-bg-surface/95 backdrop-blur-lg mx-2 mb-2 rounded-xl border border-border-subtle shadow-lg overflow-hidden z-40 cursor-pointer flex items-center px-4"
+            onClick={() => setIsExpanded(true)}
+          >
             <div className="absolute top-0 left-0 right-0 h-0.5 bg-border-subtle">
               <div 
                 className="h-full bg-accent-main transition-all duration-300 ease-linear"
@@ -273,19 +273,21 @@ export function Player() {
             >
               {isPlaying ? <Pause size={24} fill="currentColor" /> : <Play size={24} fill="currentColor" />}
             </button>
-          </div>
+          </motion.div>
         )}
+      </AnimatePresence>
 
-        <AnimatePresence>
-          {isExpanded && (
-            <motion.div 
-              initial={{ opacity: 0, y: "100%" }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: "100%" }}
-              transition={{ type: "spring", damping: 25, stiffness: 200 }}
-              className="absolute inset-0 bg-bg-main flex flex-col p-6 overflow-y-auto"
-            >
-              <div className="flex justify-between items-center mb-8 pt-safe">
+      {/* Expanded Player */}
+      <AnimatePresence>
+        {isExpanded && (
+          <motion.div 
+            initial={{ opacity: 0, y: "100%", scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: "100%", scale: 0.95 }}
+            transition={{ type: "spring", damping: 30, stiffness: 300, mass: 0.8 }}
+            className="fixed inset-0 bg-bg-main flex flex-col p-6 overflow-y-auto z-50"
+          >
+            <div className="flex justify-between items-center mb-8 pt-safe">
                 <button onClick={() => setIsExpanded(false)} className="p-2 -ml-2 text-text-muted hover:text-text-main transition-colors">
                   <ChevronDown size={28} />
                 </button>
@@ -294,7 +296,10 @@ export function Player() {
               </div>
 
               <div className="flex-1 flex flex-col items-center justify-center max-w-sm mx-auto w-full">
-                <img 
+                <motion.img 
+                  initial={{ scale: 0.9, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ delay: 0.1, type: "spring", damping: 20 }}
                   src={currentEpisode.episodeArtwork || currentEpisode.podcastArtwork} 
                   alt="Artwork" 
                   className="w-72 h-72 sm:w-80 sm:h-80 rounded-2xl shadow-2xl object-cover mb-10"
@@ -306,19 +311,26 @@ export function Player() {
                   <p className="text-text-muted text-lg">{currentEpisode.podcastName}</p>
                 </div>
 
-                <div className="w-full mb-10">
-                  <div className="relative h-1.5 bg-border-subtle rounded-full mb-3">
+                <div className="w-full mb-10 group">
+                  <div className="relative h-6 flex items-center mb-1">
                     <input 
                       type="range" 
                       min={0} 
                       max={duration || 100} 
                       value={progress} 
                       onChange={handleSeek}
-                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20"
                     />
+                    <div className="w-full h-1.5 bg-border-subtle rounded-full transition-all duration-300 group-hover:h-2.5">
+                      <div 
+                        className="h-full bg-accent-main rounded-full transition-all duration-150 ease-out"
+                        style={{ width: `${(progress / (duration || 1)) * 100}%` }}
+                      />
+                    </div>
+                    {/* Thumb */}
                     <div 
-                      className="absolute top-0 left-0 h-full bg-accent-main rounded-full"
-                      style={{ width: `${(progress / (duration || 1)) * 100}%` }}
+                      className="absolute h-3.5 w-3.5 bg-text-main rounded-full shadow-md z-10 pointer-events-none transition-all duration-300 scale-0 group-hover:scale-100"
+                      style={{ left: `calc(${(progress / (duration || 1)) * 100}% - 7px)` }}
                     />
                   </div>
                   <div className="flex justify-between text-xs text-text-muted font-medium">

@@ -43,13 +43,13 @@ function urlBase64ToUint8Array(base64String: string) {
 }
 
 const THEMES = [
-  { name: 'Padrão (Escuro)', value: 'default', color: '#8b5cf6' },
-  { name: 'Menta', value: 'frosted-mint', color: '#90CF8E' },
-  { name: 'Lavanda', value: 'lavender-veil', color: '#994D74' },
-  { name: 'Azul Alice', value: 'alice-blue', color: '#4893C6' },
-  { name: 'Creme', value: 'almond-cream', color: '#7F5539' },
-  { name: 'Carbono', value: 'carbon-black', color: '#ADB5BD' },
-  { name: 'Celadon', value: 'celadon', color: '#8FB996' },
+  { name: 'Padrão (Roxo)', value: 'default', color: '#8b5cf6' },
+  { name: 'Menta Escuro', value: 'frosted-mint', color: '#34d399' },
+  { name: 'Lavanda Escuro', value: 'lavender-veil', color: '#f472b6' },
+  { name: 'Céu Noturno', value: 'alice-blue', color: '#38bdf8' },
+  { name: 'Âmbar Escuro', value: 'almond-cream', color: '#fbbf24' },
+  { name: 'Carbono', value: 'carbon-black', color: '#e5e5e5' },
+  { name: 'Floresta', value: 'celadon', color: '#4ade80' },
 ];
 
 interface SectionProps {
