@@ -169,17 +169,39 @@ export default function App() {
     }
   }, [theme]);
 
+  useEffect(() => {
+    if (!window.history.state) {
+      window.history.replaceState({ tab: 'home', podcast: null }, '');
+    } else {
+      if (window.history.state.tab) setCurrentTab(window.history.state.tab);
+      if (window.history.state.podcast !== undefined) setSelectedPodcast(window.history.state.podcast);
+    }
+
+    const handlePopState = (e: PopStateEvent) => {
+      if (e.state) {
+        setCurrentTab(e.state.tab || 'home');
+        setSelectedPodcast(e.state.podcast || null);
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
   const handleTabChange = (tab: string) => {
+    if (tab === currentTab && !selectedPodcast) return;
+    window.history.pushState({ tab, podcast: null }, '');
     setCurrentTab(tab);
     setSelectedPodcast(null);
   };
 
   const handleSelectPodcast = (podcast: Podcast) => {
+    window.history.pushState({ tab: currentTab, podcast }, '');
     setSelectedPodcast(podcast);
   };
 
   const handleBack = () => {
-    setSelectedPodcast(null);
+    window.history.back();
   };
 
   return (
