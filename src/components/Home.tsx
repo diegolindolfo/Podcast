@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useStore } from '../store';
 import { Podcast, Episode } from '../types';
 import { getPodcastFeed } from '../services/api';
@@ -7,10 +7,103 @@ import { Play } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { formatDuration } from '../utils';
-import { motion } from 'motion/react';
+import { motion, useScroll, useTransform } from 'motion/react';
 
 interface HomeProps {
   onSelectPodcast: (podcast: Podcast) => void;
+}
+
+function Episode3DCard({ episode, index, containerRef, isPlayingThis, handlePlayEpisode }: {
+  episode: Episode;
+  index: number;
+  containerRef: React.RefObject<HTMLDivElement | null>;
+  isPlayingThis: boolean;
+  handlePlayEpisode: (episode: Episode) => void;
+}) {
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  
+  const { scrollXProgress } = useScroll({
+    container: containerRef,
+    target: wrapperRef,
+    offset: ["center end", "center start"]
+  });
+
+  const scale = useTransform(scrollXProgress, [0, 0.5, 1], [0.75, 1, 0.75]);
+  const rotateY = useTransform(scrollXProgress, [0, 0.5, 1], [40, 0, -40]);
+  const opacity = useTransform(scrollXProgress, [0, 0.5, 1], [0.3, 1, 0.3]);
+  const zIndex = useTransform(scrollXProgress, [0, 0.5, 1], [0, 10, 0]);
+
+  return (
+    <div 
+      ref={wrapperRef} 
+      className={`snap-center shrink-0 w-72 ${index !== 0 ? '-ml-16' : ''}`}
+    >
+      <motion.div
+        style={{
+          scale,
+          rotateY,
+          opacity,
+          zIndex,
+          transformOrigin: "center center",
+        }}
+        className="w-full bg-bg-surface hover:bg-bg-surface-hover transition-colors border border-border-subtle rounded-2xl p-4 flex flex-col gap-3 cursor-pointer shadow-2xl"
+        onClick={() => handlePlayEpisode(episode)}
+      >
+        <div className="flex gap-3">
+          <div className="relative w-16 h-16 shrink-0">
+            <img 
+              src={episode.episodeArtwork || episode.podcastArtwork} 
+              className="w-full h-full rounded-xl object-cover shadow-md" 
+              alt={episode.title}
+              loading="lazy"
+              referrerPolicy="no-referrer"
+            />
+            {isPlayingThis && (
+              <div className="absolute inset-0 bg-accent-main/20 flex items-center justify-center rounded-xl">
+                <div className="flex gap-0.5 items-end h-4">
+                  <div className="w-1 bg-accent-text animate-[music-bar_0.6s_ease-in-out_infinite]" />
+                  <div className="w-1 bg-accent-text animate-[music-bar_0.8s_ease-in-out_infinite]" />
+                  <div className="w-1 bg-accent-text animate-[music-bar_0.7s_ease-in-out_infinite]" />
+                </div>
+              </div>
+            )}
+          </div>
+          <div className="flex-1 min-w-0">
+            <h3 className={
+              `font-bold text-sm line-clamp-2 leading-tight transition-colors ${isPlayingThis ? 'text-accent-main' : 'text-text-main'}`
+            }>
+              {episode.title}
+            </h3>
+            <p className="text-xs text-text-muted truncate mt-1">{episode.podcastName}</p>
+          </div>
+        </div>
+        <div className="flex items-center justify-between mt-auto pt-2">
+          <div className="flex items-center gap-2 text-[10px] font-bold text-text-muted uppercase tracking-wider">
+            {episode.pubDate && (
+              <span className="bg-bg-surface-hover px-1.5 py-0.5 rounded-md">
+                {(() => {
+                  const date = new Date(episode.pubDate);
+                  return isNaN(date.getTime()) ? '' : format(date, "d MMM", { locale: ptBR });
+                })()}
+              </span>
+            )}
+            {episode.duration && (
+              <>
+                <span>•</span>
+                <span>{formatDuration(episode.duration)}</span>
+              </>
+            )}
+          </div>
+          <button 
+            className="w-8 h-8 rounded-full bg-accent-main text-accent-text flex items-center justify-center shadow-lg hover:scale-105 transition-transform"
+            onClick={(e) => { e.stopPropagation(); handlePlayEpisode(episode); }}
+          >
+            <Play size={14} className="ml-0.5" fill="currentColor" />
+          </button>
+        </div>
+      </motion.div>
+    </div>
+  );
 }
 
 export function Home({ onSelectPodcast }: HomeProps) {
@@ -26,6 +119,8 @@ export function Home({ onSelectPodcast }: HomeProps) {
 
   const [latestEpisodes, setLatestEpisodes] = useState<Episode[]>([]);
   const [loadingEpisodes, setLoadingEpisodes] = useState(false);
+
+  const sliderRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (subscriptions.length === 0) {
@@ -112,72 +207,23 @@ export function Home({ onSelectPodcast }: HomeProps) {
       {latestEpisodes.length > 0 && (
         <div className="mb-8 -mx-4">
           <h2 className="text-lg font-bold text-text-main mb-4 px-4">Últimos Episódios</h2>
-          <div className="flex overflow-x-auto snap-x snap-mandatory gap-4 px-4 pb-4 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+          <div 
+            ref={sliderRef}
+            className="flex overflow-x-auto snap-x snap-mandatory px-[calc(50%-144px)] pb-10 pt-4 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
+            style={{ perspective: 1000 }}
+          >
             {latestEpisodes.map((episode, index) => {
               const isPlayingThis = currentEpisode?.id === episode.id && isPlaying;
               
               return (
-                <motion.div
+                <Episode3DCard
                   key={episode.id}
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: index * 0.05 }}
-                  className="snap-start shrink-0 w-72 bg-bg-surface hover:bg-bg-surface-hover transition-colors border border-border-subtle rounded-2xl p-4 flex flex-col gap-3 cursor-pointer"
-                  onClick={() => handlePlayEpisode(episode)}
-                >
-                  <div className="flex gap-3">
-                    <div className="relative w-16 h-16 shrink-0">
-                      <img 
-                        src={episode.episodeArtwork || episode.podcastArtwork} 
-                        className="w-full h-full rounded-xl object-cover shadow-md" 
-                        alt={episode.title}
-                        loading="lazy"
-                        referrerPolicy="no-referrer"
-                      />
-                      {isPlayingThis && (
-                        <div className="absolute inset-0 bg-accent-main/20 flex items-center justify-center rounded-xl">
-                          <div className="flex gap-0.5 items-end h-4">
-                            <div className="w-1 bg-accent-text animate-[music-bar_0.6s_ease-in-out_infinite]" />
-                            <div className="w-1 bg-accent-text animate-[music-bar_0.8s_ease-in-out_infinite]" />
-                            <div className="w-1 bg-accent-text animate-[music-bar_0.7s_ease-in-out_infinite]" />
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h3 className={
-                        `font-bold text-sm line-clamp-2 leading-tight transition-colors ${isPlayingThis ? 'text-accent-main' : 'text-text-main'}`
-                      }>
-                        {episode.title}
-                      </h3>
-                      <p className="text-xs text-text-muted truncate mt-1">{episode.podcastName}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between mt-auto pt-2">
-                    <div className="flex items-center gap-2 text-[10px] font-bold text-text-muted uppercase tracking-wider">
-                      {episode.pubDate && (
-                        <span className="bg-bg-surface-hover px-1.5 py-0.5 rounded-md">
-                          {(() => {
-                            const date = new Date(episode.pubDate);
-                            return isNaN(date.getTime()) ? '' : format(date, "d MMM", { locale: ptBR });
-                          })()}
-                        </span>
-                      )}
-                      {episode.duration && (
-                        <>
-                          <span>•</span>
-                          <span>{formatDuration(episode.duration)}</span>
-                        </>
-                      )}
-                    </div>
-                    <button 
-                      className="w-8 h-8 rounded-full bg-accent-main text-accent-text flex items-center justify-center shadow-lg hover:scale-105 transition-transform"
-                      onClick={(e) => { e.stopPropagation(); handlePlayEpisode(episode); }}
-                    >
-                      <Play size={14} className="ml-0.5" fill="currentColor" />
-                    </button>
-                  </div>
-                </motion.div>
+                  episode={episode}
+                  index={index}
+                  containerRef={sliderRef}
+                  isPlayingThis={isPlayingThis}
+                  handlePlayEpisode={handlePlayEpisode}
+                />
               );
             })}
           </div>
