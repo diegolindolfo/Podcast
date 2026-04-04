@@ -423,7 +423,6 @@ export function Player() {
             </motion.div>
           )}
         </AnimatePresence>
-      </div>
     </>
   );
 }
