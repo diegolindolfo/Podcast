@@ -43,6 +43,7 @@ function urlBase64ToUint8Array(base64String: string) {
 }
 
 const THEMES = [
+  { name: 'Bento Limão (Neon)', value: 'bento-lime', color: '#D9F99D' },
   { name: 'Padrão (Roxo)', value: 'default', color: '#8b5cf6' },
   { name: 'Menta Escuro', value: 'frosted-mint', color: '#34d399' },
   { name: 'Lavanda Escuro', value: 'lavender-veil', color: '#f472b6' },

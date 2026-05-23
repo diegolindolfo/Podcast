@@ -11,6 +11,8 @@
   --color-border-subtle: var(--border-subtle);
   --color-accent-main: var(--accent-main);
   --color-accent-text: var(--accent-text);
+  --color-accent-lime: #D9F99D; /* Added lime color from reference */
+  --radius-4xl: 2.5rem; /* Large radius from the image */
 }
 
 :root {
@@ -23,6 +25,18 @@
   --border-subtle: rgba(255, 255, 255, 0.05);
   --accent-main: #8b5cf6;
   --accent-text: #ffffff;
+}
+
+[data-theme="bento-lime"] {
+  /* Bento Neo-Lime Theme */
+  --bg-main: #09090b;
+  --bg-surface: #18181b;
+  --bg-surface-hover: #27272a;
+  --text-main: #ffffff;
+  --text-muted: #a1a1aa;
+  --border-subtle: rgba(217, 249, 157, 0.15);
+  --accent-main: #D9F99D;
+  --accent-text: #000000;
 }
 
 [data-theme="frosted-mint"] {

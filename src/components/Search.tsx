@@ -145,26 +145,26 @@ export function Search({ onSelectPodcast }: SearchProps) {
           <button
             key={podcast.collectionId}
             onClick={() => onSelectPodcast(podcast)}
-            className="text-left group flex flex-col"
+            className="text-left group flex flex-col bg-bg-surface rounded-4xl p-3 border border-white/5 transition-all duration-300 hover:bg-bg-surface-hover shadow-lg"
           >
-            <div className="relative aspect-square rounded-xl overflow-hidden bg-bg-surface mb-2 border border-border-subtle">
+            <div className="relative aspect-square rounded-[32px] overflow-hidden bg-bg-surface mb-3 shadow-md">
               <img
                 src={podcast.artworkUrl600}
                 alt={podcast.collectionName}
-                className="w-full h-full object-cover"
+                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                 loading="lazy"
                 referrerPolicy="no-referrer"
               />
               {selectedCategory && (
-                <div className="absolute top-2 left-2 bg-bg-main/80 backdrop-blur-md text-text-main text-[10px] font-bold px-1.5 py-0.5 rounded-md border border-border-subtle">
+                <div className="absolute top-3 left-3 bg-bg-main/80 backdrop-blur-md text-text-main text-[10px] font-black px-2 py-1 rounded-full border border-white/5">
                   #{results.indexOf(podcast) + 1}
                 </div>
               )}
             </div>
-            <h3 className="font-semibold text-sm line-clamp-2 leading-tight group-hover:text-accent-main transition-colors text-text-main">
+            <h3 className="font-bold text-sm line-clamp-1 leading-tight group-hover:text-accent-main transition-colors text-text-main px-1">
               {podcast.collectionName}
             </h3>
-            <p className="text-xs text-text-muted truncate mt-1">{podcast.artistName}</p>
+            <p className="text-[10px] font-bold text-text-muted truncate mt-1 px-1 uppercase tracking-wider">{podcast.artistName}</p>
           </button>
         ))}
       </div>

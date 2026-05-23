@@ -64,22 +64,22 @@ export function Downloads() {
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, scale: 0.95 }}
                   transition={{ delay: index * 0.05 }}
-                  className="group flex gap-4 p-4 rounded-2xl bg-bg-surface hover:bg-bg-surface-hover transition-all border border-border-subtle shadow-sm"
+                  className="group flex gap-4 p-5 rounded-4xl bg-bg-surface hover:bg-bg-surface-hover transition-all border border-white/5 shadow-2xl"
                 >
-                  <div className="relative flex-shrink-0">
+                  <div className="relative flex-shrink-0 w-20 h-20">
                     <img 
                       src={episode.episodeArtwork || episode.podcastArtwork} 
                       alt={episode.podcastName} 
-                      className="w-16 h-16 rounded-xl object-cover shadow-lg border border-border-subtle"
+                      className="w-full h-full rounded-3xl object-cover shadow-xl"
                       loading="lazy"
                       referrerPolicy="no-referrer"
                     />
                     {isPlayingThis && (
-                      <div className="absolute inset-0 bg-accent-main/20 flex items-center justify-center rounded-xl">
-                        <div className="flex gap-0.5 items-end h-4">
-                          <div className="w-1 bg-accent-text animate-[music-bar_0.6s_ease-in-out_infinite]" />
-                          <div className="w-1 bg-accent-text animate-[music-bar_0.8s_ease-in-out_infinite]" />
-                          <div className="w-1 bg-accent-text animate-[music-bar_0.7s_ease-in-out_infinite]" />
+                      <div className="absolute inset-0 bg-accent-main/20 flex items-center justify-center rounded-3xl backdrop-blur-[2px]">
+                        <div className="flex gap-1 items-end h-5">
+                          <div className="w-1 bg-accent-main animate-[music-bar_0.6s_ease-in-out_infinite]" />
+                          <div className="w-1 bg-accent-main animate-[music-bar_0.8s_ease-in-out_infinite]" />
+                          <div className="w-1 bg-accent-main animate-[music-bar_0.7s_ease-in-out_infinite]" />
                         </div>
                       </div>
                     )}
@@ -87,14 +87,14 @@ export function Downloads() {
                   
                   <div className="flex-1 min-w-0 flex flex-col justify-center">
                     <h3 className={clsx(
-                      "font-bold text-sm leading-tight mb-1 truncate group-hover:text-accent-main transition-colors",
-                      currentEpisode?.id === episode.id ? "text-accent-main" : "text-text-main"
+                      "font-bold text-sm leading-tight mb-1 truncate transition-colors",
+                      currentEpisode?.id === episode.id ? "text-accent-main" : "text-text-main group-hover:text-accent-main"
                     )}>
                       {episode.title}
                     </h3>
-                    <p className="text-xs text-text-muted truncate mb-2 font-medium">{episode.podcastName}</p>
-                    <div className="flex items-center gap-2 text-[10px] font-bold text-text-muted uppercase tracking-widest">
-                      <span className="bg-bg-surface-hover px-1.5 py-0.5 rounded-md">{formatSize(episode.size)}</span>
+                    <p className="text-xs text-text-muted font-bold truncate mb-2">{episode.podcastName}</p>
+                    <div className="flex items-center gap-2 text-[10px] font-bold text-text-muted uppercase tracking-wider">
+                      <span className="bg-white/5 border border-white/5 px-2 py-1 rounded-full">{formatSize(episode.size)}</span>
                       <span>•</span>
                       <span>{(() => {
                         const date = new Date(episode.downloadedAt);
@@ -109,36 +109,36 @@ export function Downloads() {
                       <>
                         <button 
                           onClick={() => handlePlay(episode)}
-                          className="w-11 h-11 rounded-full bg-bg-surface-hover flex items-center justify-center text-text-muted hover:bg-accent-main hover:text-accent-text transition-all shadow-lg border border-border-subtle"
+                          className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center text-text-muted hover:bg-accent-main hover:text-accent-text transition-all hover:scale-110 active:scale-95 shadow-lg border border-white/5"
                         >
-                          {isPlayingThis ? <Pause size={20} fill="currentColor" /> : <Play size={20} fill="currentColor" className="ml-1" />}
+                          {isPlayingThis ? <Pause size={18} fill="currentColor" /> : <Play size={18} fill="currentColor" className="ml-0.5" />}
                         </button>
                         <button 
                           onClick={() => setConfirmingDelete(episode.id)}
-                          className="w-11 h-11 rounded-full flex items-center justify-center text-text-muted hover:text-red-500 hover:bg-red-500/10 transition-all"
+                          className="w-12 h-12 rounded-full flex items-center justify-center text-text-muted hover:text-red-500 hover:bg-red-500/10 transition-all hover:scale-110 active:scale-95"
                         >
-                          <Trash2 size={20} />
+                          <Trash2 size={18} />
                         </button>
                       </>
                     ) : (
                       <motion.div 
                         initial={{ scale: 0.8, opacity: 0 }}
                         animate={{ scale: 1, opacity: 1 }}
-                        className="flex items-center gap-1 bg-bg-surface-hover rounded-full p-1 border border-border-subtle shadow-xl"
+                        className="flex items-center gap-1 bg-black/40 rounded-full p-1 border border-white/5 shadow-2xl"
                       >
                         <button 
                           onClick={() => handleDelete(episode.id, episode.audioUrl)}
-                          className="w-9 h-9 rounded-full flex items-center justify-center text-red-500 hover:bg-red-500/20 transition-colors"
+                          className="w-10 h-10 rounded-full flex items-center justify-center text-red-500 hover:bg-red-500/20 transition-colors"
                           title="Confirmar exclusão"
                         >
-                          <Check size={18} />
+                          <Check size={16} />
                         </button>
                         <button 
                           onClick={() => setConfirmingDelete(null)}
-                          className="w-9 h-9 rounded-full flex items-center justify-center text-text-muted hover:bg-bg-surface transition-colors"
+                          className="w-10 h-10 rounded-full flex items-center justify-center text-text-muted hover:bg-white/5 transition-colors"
                           title="Cancelar"
                         >
-                          <X size={18} />
+                          <X size={16} />
                         </button>
                       </motion.div>
                     )}

@@ -1,5 +1,6 @@
 import { HomeIcon, DiscoverIcon, DownloadsIcon, HistoryIcon, SettingsIcon } from './CustomIcons';
 import { clsx } from 'clsx';
+import { motion } from 'motion/react';
 
 interface BottomNavProps {
   currentTab: string;
@@ -16,8 +17,8 @@ export function BottomNav({ currentTab, onChange }: BottomNavProps) {
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-bg-main/90 backdrop-blur-lg pb-safe z-40 border-t border-border-subtle">
-      <div className="flex justify-around items-center h-16 max-w-lg mx-auto">
+    <nav className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[90%] max-w-sm bg-black/60 backdrop-blur-2xl px-4 py-2 z-40 border border-white/10 rounded-full shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
+      <div className="flex justify-between items-center h-14">
         {tabs.map((tab) => {
           const Icon = tab.icon;
           const isActive = currentTab === tab.id;
@@ -26,14 +27,19 @@ export function BottomNav({ currentTab, onChange }: BottomNavProps) {
               key={tab.id}
               onClick={() => onChange(tab.id)}
               className={clsx(
-                'flex flex-col items-center justify-center w-full h-full space-y-1 transition-colors',
-                isActive ? 'text-accent-main' : 'text-text-muted hover:text-text-main'
+                'flex flex-col items-center justify-center w-12 h-12 rounded-full transition-all duration-300 relative',
+                isActive ? 'text-accent-lime scale-110' : 'text-text-muted hover:text-text-main'
               )}
             >
               <Icon 
-                size={24} 
+                size={22} 
               />
-              <span className="text-[10px] font-medium">{tab.label}</span>
+              {isActive && (
+                <motion.div 
+                  layoutId="activeTab"
+                  className="absolute -bottom-1 w-1 h-1 bg-accent-lime rounded-full"
+                />
+              )}
             </button>
           );
         })}

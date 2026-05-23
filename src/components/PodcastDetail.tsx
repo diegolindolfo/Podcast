@@ -149,26 +149,26 @@ export function PodcastDetail({ podcast, onBack }: PodcastDetailProps) {
       </div>
 
       {/* Hero */}
-      <div className="px-4 pt-6 pb-8 border-b border-border-subtle">
+      <div className="px-4 pt-6 pb-8 border-b border-white/5">
         <div className="flex flex-col sm:flex-row gap-6 items-center sm:items-start">
           <img 
             src={podcast.artworkUrl600} 
             alt={podcast.collectionName} 
-            className="w-48 h-48 sm:w-40 sm:h-40 rounded-xl shadow-xl object-cover"
+            className="w-48 h-48 sm:w-40 sm:h-40 rounded-4xl shadow-2xl object-cover border border-white/5"
             referrerPolicy="no-referrer"
           />
           
-          <div className="flex-1 text-center sm:text-left">
-            <h1 className="text-2xl font-bold mb-1">{podcast.collectionName}</h1>
-            <p className="text-text-muted text-sm mb-4">{podcast.artistName}</p>
+          <div className="flex-1 text-center sm:text-left flex flex-col justify-center">
+            <h1 className="text-3xl font-black mb-1 leading-tight tracking-tight">{podcast.collectionName}</h1>
+            <p className="text-text-muted font-bold text-sm mb-4">{podcast.artistName}</p>
             
             <button 
               onClick={toggleSubscription}
               className={clsx(
-                "px-6 py-2 rounded-full text-sm font-semibold transition-all active:scale-95",
+                "px-8 py-3 rounded-full text-xs uppercase tracking-wider font-black transition-all hover:scale-105 active:scale-95 shadow-lg inline-self-center sm:inline-self-start",
                 isSubscribed 
-                  ? "bg-bg-surface-hover text-text-muted" 
-                  : "bg-accent-main text-accent-text hover:opacity-90"
+                  ? "bg-white/5 text-text-muted border border-white/5" 
+                  : "bg-accent-main text-accent-text"
               )}
             >
               {isSubscribed ? "Inscrito" : "Inscrever-se"}
@@ -204,16 +204,15 @@ export function PodcastDetail({ podcast, onBack }: PodcastDetailProps) {
               const isPlayingThis = currentEpisode?.id === episode.id && isPlaying;
               const isDownloaded = downloads.some(d => d.id === episode.id);
               
-              return (
-                <div 
+              return (                <div 
                   key={episode.id} 
-                  className="py-4 flex gap-4 group"
+                  className="py-5 flex gap-4 group border-b border-white/5 last:border-0"
                 >
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-3 mb-2 text-xs font-semibold text-text-muted">
+                    <div className="flex items-center gap-3 mb-2 text-[10px] font-black uppercase tracking-widest text-text-muted">
                       {episode.pubDate && (
-                        <div className="flex items-center gap-1.5">
-                          <Calendar size={14} className="text-accent-main" />
+                        <div className="flex items-center gap-1.5 bg-white/5 px-2.5 py-1 rounded-full">
+                          <Calendar size={12} className="text-accent-main" />
                           <span>
                             {(() => {
                               const date = new Date(episode.pubDate);
@@ -225,19 +224,19 @@ export function PodcastDetail({ podcast, onBack }: PodcastDetailProps) {
                       )}
                       
                       {episode.duration && (
-                        <div className="flex items-center gap-1.5">
-                          <Clock size={14} className="text-accent-main" />
+                        <div className="flex items-center gap-1.5 bg-white/5 px-2.5 py-1 rounded-full">
+                          <Clock size={12} className="text-accent-main" />
                           <span>{formatDuration(episode.duration)}</span>
                         </div>
                       )}
                     </div>
                     <h3 className={clsx(
-                      "font-semibold text-sm leading-snug mb-1.5 line-clamp-2",
-                      currentEpisode?.id === episode.id ? "text-accent-main" : "text-text-main"
+                      "font-bold text-base leading-snug mb-2 line-clamp-2 transition-colors",
+                      currentEpisode?.id === episode.id ? "text-accent-main" : "text-text-main group-hover:text-accent-main"
                     )}>
                       {episode.title}
                     </h3>
-                    <p className="text-xs text-text-muted line-clamp-2 mb-3">
+                    <p className="text-xs text-text-muted line-clamp-2 mb-4 leading-relaxed">
                       {episode.description}
                     </p>
                     
@@ -245,25 +244,29 @@ export function PodcastDetail({ podcast, onBack }: PodcastDetailProps) {
                       <button 
                         onClick={() => handlePlay(episode)}
                         className={clsx(
-                          "flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-semibold transition-all",
-                          isPlayingThis ? "bg-accent-main text-accent-text" : "bg-bg-surface-hover text-text-muted hover:bg-bg-surface"
+                          "flex items-center gap-2 px-5 py-2.5 rounded-full text-xs font-black uppercase tracking-widest transition-all hover:scale-105 active:scale-95 shadow-md",
+                          isPlayingThis 
+                            ? "bg-accent-main text-accent-text" 
+                            : "bg-white/5 text-text-muted hover:bg-white/10 hover:text-text-main"
                         )}
                       >
-                        {isPlayingThis ? <Pause size={14} fill="currentColor" /> : <Play size={14} fill="currentColor" />}
+                        {isPlayingThis ? <Pause size={14} fill="currentColor" /> : <Play size={14} fill="currentColor" className="ml-0.5" />}
                         {isPlayingThis ? 'Pausar' : 'Ouvir'}
                       </button>
-
+ 
                       <div className="ml-auto">
                         {downloadProgress[episode.id] !== undefined ? (
-                          <div className="text-[10px] font-bold text-accent-main">
-                            {downloadProgress[episode.id]}%
+                          <div className="text-[10px] font-black text-accent-main uppercase tracking-widest bg-accent-main/10 px-3 py-1.5 rounded-full animate-pulse">
+                            {downloadProgress[episode.id]}% BAixando
                           </div>
                         ) : (
                           <button 
                             onClick={() => handleDownload(episode, isDownloaded)}
                             className={clsx(
-                              "p-2 rounded-full transition-all",
-                              isDownloaded ? "text-accent-main bg-accent-main/10" : "text-text-muted bg-bg-surface-hover hover:text-text-main hover:bg-bg-surface"
+                              "w-10 h-10 rounded-full flex items-center justify-center transition-all hover:scale-110 active:scale-95",
+                              isDownloaded 
+                                ? "text-accent-main bg-accent-main/10" 
+                                : "text-text-muted bg-white/5 hover:text-text-main hover:bg-white/10"
                             )}
                           >
                             {isDownloaded ? <Check size={16} /> : <Download size={16} />}

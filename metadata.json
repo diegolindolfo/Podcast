@@ -1,5 +1,6 @@
 {
   "name": "PodFlow",
   "description": "PWA de podcast com notificações de novos episódios para Android.",
-  "requestFramePermissions": []
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

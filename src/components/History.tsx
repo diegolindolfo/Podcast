@@ -87,22 +87,22 @@ export function History() {
                   initial={{ opacity: 0, x: -10 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: index * 0.03 }}
-                  className="group flex gap-4 p-4 rounded-2xl bg-bg-surface hover:bg-bg-surface-hover transition-all border border-border-subtle shadow-sm"
+                  className="group flex gap-4 p-5 rounded-4xl bg-bg-surface hover:bg-bg-surface-hover transition-all border border-white/5 shadow-2xl"
                 >
-                  <div className="relative flex-shrink-0">
+                  <div className="relative flex-shrink-0 w-20 h-20">
                     <img 
                       src={episode.episodeArtwork || episode.podcastArtwork} 
                       alt={episode.podcastName} 
-                      className="w-14 h-14 rounded-xl object-cover shadow-lg border border-border-subtle"
+                      className="w-full h-full rounded-3xl object-cover shadow-xl"
                       loading="lazy"
                       referrerPolicy="no-referrer"
                     />
                     {isPlayingThis && (
-                      <div className="absolute inset-0 bg-accent-main/20 flex items-center justify-center rounded-xl">
-                        <div className="flex gap-0.5 items-end h-3">
-                          <div className="w-0.5 bg-accent-text animate-[music-bar_0.6s_ease-in-out_infinite]" />
-                          <div className="w-0.5 bg-accent-text animate-[music-bar_0.8s_ease-in-out_infinite]" />
-                          <div className="w-0.5 bg-accent-text animate-[music-bar_0.7s_ease-in-out_infinite]" />
+                      <div className="absolute inset-0 bg-accent-main/20 flex items-center justify-center rounded-3xl backdrop-blur-[2px]">
+                        <div className="flex gap-1 items-end h-5">
+                          <div className="w-1 bg-accent-main animate-[music-bar_0.6s_ease-in-out_infinite]" />
+                          <div className="w-1 bg-accent-main animate-[music-bar_0.8s_ease-in-out_infinite]" />
+                          <div className="w-1 bg-accent-main animate-[music-bar_0.7s_ease-in-out_infinite]" />
                         </div>
                       </div>
                     )}
@@ -110,20 +110,20 @@ export function History() {
                   
                   <div className="flex-1 min-w-0 flex flex-col justify-center">
                     <h3 className={clsx(
-                      "font-bold text-sm leading-tight mb-1 truncate group-hover:text-accent-main transition-colors",
-                      currentEpisode?.id === episode.id ? "text-accent-main" : "text-text-main"
+                      "font-bold text-sm leading-tight mb-1 truncate transition-colors",
+                      currentEpisode?.id === episode.id ? "text-accent-main" : "text-text-main group-hover:text-accent-main"
                     )}>
                       {episode.title}
                     </h3>
-                    <p className="text-xs text-text-muted truncate font-medium">{episode.podcastName}</p>
+                    <p className="text-xs text-text-muted font-bold truncate">{episode.podcastName}</p>
                   </div>
                   
                   <div className="flex items-center">
                     <button 
                       onClick={() => handlePlay(episode)}
-                      className="w-11 h-11 rounded-full bg-bg-surface-hover flex items-center justify-center text-text-muted hover:bg-accent-main hover:text-accent-text transition-all shadow-lg border border-border-subtle"
+                      className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center text-text-muted hover:bg-accent-main hover:text-accent-text transition-all hover:scale-110 active:scale-95 shadow-lg border border-white/5"
                     >
-                      {isPlayingThis ? <Pause size={20} fill="currentColor" /> : <Play size={20} fill="currentColor" className="ml-1" />}
+                      {isPlayingThis ? <Pause size={18} fill="currentColor" /> : <Play size={18} fill="currentColor" className="ml-0.5" />}
                     </button>
                   </div>
                 </motion.div>
