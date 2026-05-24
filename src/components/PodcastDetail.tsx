@@ -154,7 +154,7 @@ export function PodcastDetail({ podcast, onBack }: PodcastDetailProps) {
           <img 
             src={podcast.artworkUrl600} 
             alt={podcast.collectionName} 
-            className="w-48 h-48 sm:w-40 sm:h-40 rounded-4xl shadow-2xl object-cover border border-white/5"
+            className="w-48 h-48 sm:w-40 sm:h-40 rounded-xl shadow-2xl object-cover border border-white/5"
             referrerPolicy="no-referrer"
           />
           
@@ -165,7 +165,7 @@ export function PodcastDetail({ podcast, onBack }: PodcastDetailProps) {
             <button 
               onClick={toggleSubscription}
               className={clsx(
-                "px-8 py-3 rounded-full text-xs uppercase tracking-wider font-black transition-all hover:scale-105 active:scale-95 shadow-lg inline-self-center sm:inline-self-start",
+                "px-8 py-3 rounded-xl text-xs uppercase tracking-wider font-black transition-all hover:scale-105 active:scale-95 shadow-lg inline-self-center sm:inline-self-start",
                 isSubscribed 
                   ? "bg-white/5 text-text-muted border border-white/5" 
                   : "bg-accent-main text-accent-text"
@@ -209,7 +209,7 @@ export function PodcastDetail({ podcast, onBack }: PodcastDetailProps) {
                   className="py-5 flex gap-4 group border-b border-white/5 last:border-0 items-start"
                 >
                   {/* Capa do Episódio */}
-                  <div className="relative w-20 h-20 sm:w-24 sm:h-24 shrink-0 rounded-2xl overflow-hidden bg-bg-surface border border-white/5 shadow-md">
+                  <div className="relative w-20 h-20 sm:w-24 sm:h-24 shrink-0 rounded-xl overflow-hidden bg-bg-surface border border-white/5 shadow-md">
                     <img 
                       src={episode.episodeArtwork || episode.podcastArtwork || podcast.artworkUrl600} 
                       alt={episode.title} 

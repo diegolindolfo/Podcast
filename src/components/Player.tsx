@@ -247,7 +247,7 @@ export function Player() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 20 }}
-            className="fixed left-4 right-4 bottom-24 h-18 bg-black/80 backdrop-blur-3xl rounded-4xl border border-white/5 shadow-2xl overflow-hidden z-40 cursor-pointer flex items-center px-5"
+            className="fixed left-4 right-4 bottom-24 h-18 bg-black/80 backdrop-blur-3xl rounded-xl border border-white/5 shadow-2xl overflow-hidden z-40 cursor-pointer flex items-center px-5"
             onClick={() => setIsExpanded(true)}
           >
             <div className="absolute bottom-0 left-0 right-0 h-1 bg-white/5">
@@ -260,7 +260,7 @@ export function Player() {
             <img 
               src={currentEpisode.episodeArtwork || currentEpisode.podcastArtwork} 
               alt="Artwork" 
-              className="w-12 h-12 rounded-2xl object-cover mr-4 shadow-lg"
+              className="w-12 h-12 rounded-lg object-cover mr-4 shadow-lg"
               referrerPolicy="no-referrer"
             />
             <div className="flex-1 min-w-0">
@@ -304,7 +304,7 @@ export function Player() {
                   <img 
                     src={currentEpisode.episodeArtwork || currentEpisode.podcastArtwork} 
                     alt="Artwork" 
-                    className="w-72 h-72 sm:w-80 sm:h-80 rounded-4xl shadow-[0_40px_80px_rgba(0,0,0,0.5)] object-cover mb-12 border border-white/5"
+                    className="w-72 h-72 sm:w-80 sm:h-80 rounded-2xl shadow-[0_40px_80px_rgba(0,0,0,0.5)] object-cover mb-12 border border-white/5"
                     referrerPolicy="no-referrer"
                   />
                   {isPlaying && (
@@ -374,7 +374,7 @@ export function Player() {
                       {playbackRate}x
                     </button>
                     {showSpeedMenu && (
-                      <div className="absolute bottom-full left-0 mb-4 bg-bg-surface rounded-3xl shadow-2xl overflow-hidden border border-white/5 min-w-[120px] backdrop-blur-xl">
+                      <div className="absolute bottom-full left-0 mb-4 bg-bg-surface rounded-xl shadow-2xl overflow-hidden border border-white/5 min-w-[120px] backdrop-blur-xl">
                         {[0.8, 1, 1.2, 1.5, 2, 2.5].map(rate => (
                           <button
                             key={rate}
@@ -403,7 +403,7 @@ export function Player() {
                       {sleepTimer ? getTimerRemaining() : 'Timer'}
                     </button>
                     {showTimerMenu && (
-                      <div className="absolute bottom-full right-0 mb-4 bg-bg-surface rounded-3xl shadow-2xl overflow-hidden border border-white/5 min-w-[160px] backdrop-blur-xl">
+                      <div className="absolute bottom-full right-0 mb-4 bg-bg-surface rounded-xl shadow-2xl overflow-hidden border border-white/5 min-w-[160px] backdrop-blur-xl">
                         <button
                           onClick={() => handleSetTimer(null)}
                           className={clsx(

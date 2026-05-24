@@ -145,9 +145,9 @@ export function Search({ onSelectPodcast }: SearchProps) {
           <button
             key={podcast.collectionId}
             onClick={() => onSelectPodcast(podcast)}
-            className="text-left group flex flex-col bg-bg-surface rounded-4xl p-3 border border-white/5 transition-all duration-300 hover:bg-bg-surface-hover shadow-lg"
+            className="text-left group flex flex-col bg-bg-surface rounded-2xl p-3 border border-white/5 transition-all duration-300 hover:bg-bg-surface-hover shadow-lg"
           >
-            <div className="relative aspect-square rounded-[32px] overflow-hidden bg-bg-surface mb-3 shadow-md">
+            <div className="relative aspect-square rounded-xl overflow-hidden bg-bg-surface mb-3 shadow-md">
               <img
                 src={podcast.artworkUrl600}
                 alt={podcast.collectionName}

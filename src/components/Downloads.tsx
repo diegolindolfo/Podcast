@@ -64,18 +64,18 @@ export function Downloads() {
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, scale: 0.95 }}
                   transition={{ delay: index * 0.05 }}
-                  className="group flex gap-4 p-5 rounded-4xl bg-bg-surface hover:bg-bg-surface-hover transition-all border border-white/5 shadow-2xl"
+                  className="group flex gap-4 p-5 rounded-2xl bg-bg-surface hover:bg-bg-surface-hover transition-all border border-white/5 shadow-2xl"
                 >
                   <div className="relative flex-shrink-0 w-20 h-20">
                     <img 
                       src={episode.episodeArtwork || episode.podcastArtwork} 
                       alt={episode.podcastName} 
-                      className="w-full h-full rounded-3xl object-cover shadow-xl"
+                      className="w-full h-full rounded-xl object-cover shadow-xl"
                       loading="lazy"
                       referrerPolicy="no-referrer"
                     />
                     {isPlayingThis && (
-                      <div className="absolute inset-0 bg-accent-main/20 flex items-center justify-center rounded-3xl backdrop-blur-[2px]">
+                      <div className="absolute inset-0 bg-accent-main/20 flex items-center justify-center rounded-xl backdrop-blur-[2px]">
                         <div className="flex gap-1 items-end h-5">
                           <div className="w-1 bg-accent-main animate-[music-bar_0.6s_ease-in-out_infinite]" />
                           <div className="w-1 bg-accent-main animate-[music-bar_0.8s_ease-in-out_infinite]" />

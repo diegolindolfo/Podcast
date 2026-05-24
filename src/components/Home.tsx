@@ -21,11 +21,34 @@ export function Home({ onSelectPodcast }: HomeProps) {
     setCurrentEpisode,
     setIsPlaying,
     currentEpisode,
-    isPlaying
+    isPlaying,
+    history,
+    savedProgress,
+    finishedAt
   } = useStore();
 
   const [latestEpisodes, setLatestEpisodes] = useState<Episode[]>([]);
   const [loadingEpisodes, setLoadingEpisodes] = useState(false);
+
+  // Find a pending/in-progress episode
+  let pendingEpisode: Episode | null = currentEpisode;
+  
+  if (!pendingEpisode && history && history.length > 0) {
+    // Find the first history episode that is not finished and has some progress saved
+    const partiallyListened = history.find(ep => {
+      const isFinished = finishedAt && finishedAt[ep.id];
+      const prog = savedProgress && savedProgress[ep.id];
+      return !isFinished && prog && prog > 0;
+    });
+    if (partiallyListened) {
+      pendingEpisode = partiallyListened;
+    }
+  }
+
+  // Fallback to the first latest episode if nothing is in progress
+  if (!pendingEpisode && latestEpisodes.length > 0) {
+    pendingEpisode = latestEpisodes[0];
+  }
 
   useEffect(() => {
     if (subscriptions.length === 0) {
@@ -109,7 +132,7 @@ export function Home({ onSelectPodcast }: HomeProps) {
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-accent-lime rounded-4xl p-6 text-black relative overflow-hidden flex flex-col h-64 justify-between shadow-2xl"
+          className="bg-accent-lime rounded-2xl p-6 text-black relative overflow-hidden flex flex-col h-64 justify-between shadow-2xl"
         >
           {/* Decorative shapes to match reference */}
           <div className="absolute top-0 right-0 w-32 h-32 bg-black/5 rounded-full -mr-16 -mt-16" />
@@ -146,19 +169,26 @@ export function Home({ onSelectPodcast }: HomeProps) {
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.1 }}
-            className="flex-1 bg-white/5 rounded-4xl p-5 border border-white/5 backdrop-blur-3xl"
+            onClick={() => pendingEpisode && handlePlayEpisode(pendingEpisode)}
+            className={`flex-1 bg-white/5 rounded-2xl p-5 border border-white/5 backdrop-blur-3xl flex flex-col justify-between min-w-0 select-none duration-200 ${pendingEpisode ? "cursor-pointer hover:bg-white/10 active:scale-[0.98] transition-all" : ""}`}
           >
-            <div className="bg-white/10 w-8 h-8 rounded-full flex items-center justify-center mb-4">
-              <div className="w-2 h-2 bg-accent-lime rounded-full" />
+            <div>
+              <div className="bg-white/10 w-8 h-8 rounded-full flex items-center justify-center mb-4">
+                <div className={`w-2 h-2 rounded-full ${isPlaying && currentEpisode?.id === pendingEpisode?.id ? 'bg-accent-lime animate-pulse' : 'bg-text-muted'}`} />
+              </div>
+              <span className="text-[10px] font-black text-text-muted uppercase tracking-wider block">
+                {currentEpisode?.id === pendingEpisode?.id ? 'Tocando Agora' : pendingEpisode ? 'Para Ouvir' : 'Próximo'}
+              </span>
+              <p className="font-bold text-sm mt-1 truncate max-w-full text-text-main">
+                {pendingEpisode ? pendingEpisode.title : 'Nenhum pendente'}
+              </p>
             </div>
-            <span className="text-xs font-bold text-text-muted">Próximo</span>
-            <p className="font-bold text-sm mt-1 truncate">Episódio pendente</p>
           </motion.div>
           <motion.div 
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.1 }}
-            className="flex-1 bg-bg-surface rounded-4xl p-5 border border-white/5"
+            className="flex-1 bg-bg-surface rounded-2xl p-5 border border-white/5"
           >
             <h3 className="text-2xl font-bold leading-none mb-1">{latestEpisodes.length}</h3>
             <p className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Novidades</p>
@@ -179,20 +209,20 @@ export function Home({ onSelectPodcast }: HomeProps) {
                   initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: index * 0.05 }}
-                  className="snap-start shrink-0 w-80 bg-bg-surface hover:bg-bg-surface-hover transition-all border border-white/5 rounded-4xl p-5 flex flex-col gap-4 cursor-pointer shadow-xl"
+                  className="snap-start shrink-0 w-80 bg-bg-surface hover:bg-bg-surface-hover transition-all border border-white/5 rounded-2xl p-5 flex flex-col gap-4 cursor-pointer shadow-xl"
                   onClick={() => handlePlayEpisode(episode)}
                 >
                   <div className="flex gap-4">
                     <div className="relative w-24 h-24 shrink-0">
                       <img 
                         src={episode.episodeArtwork || episode.podcastArtwork} 
-                        className="w-full h-full rounded-3xl object-cover shadow-2xl" 
+                        className="w-full h-full rounded-xl object-cover shadow-2xl" 
                         alt={episode.title}
                         loading="lazy"
                         referrerPolicy="no-referrer"
                       />
                       {isPlayingThis && (
-                        <div className="absolute inset-0 bg-accent-lime/20 flex items-center justify-center rounded-3xl backdrop-blur-[2px]">
+                        <div className="absolute inset-0 bg-accent-lime/20 flex items-center justify-center rounded-xl backdrop-blur-[2px]">
                           <div className="flex gap-1 items-end h-5">
                             <div className="w-1 bg-accent-lime animate-[music-bar_0.6s_ease-in-out_infinite]" />
                             <div className="w-1 bg-accent-lime animate-[music-bar_0.8s_ease-in-out_infinite]" />
@@ -243,7 +273,7 @@ export function Home({ onSelectPodcast }: HomeProps) {
       <div className="mb-4">
         <h2 className="text-xs font-bold text-text-muted uppercase tracking-widest mb-4 px-1">Suas Inscrições</h2>
         {subscriptions.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-[30vh] text-center px-4 bg-bg-surface rounded-4xl border border-dashed border-white/10">
+          <div className="flex flex-col items-center justify-center h-[30vh] text-center px-4 bg-bg-surface rounded-2xl border border-dashed border-white/10">
             <div className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center mb-4">
               <span className="text-2xl">🎧</span>
             </div>
@@ -267,9 +297,9 @@ export function Home({ onSelectPodcast }: HomeProps) {
                   transition={{ delay: index * 0.03 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={() => onSelectPodcast(podcast)}
-                  className="text-left group flex flex-col bg-bg-surface rounded-4xl p-3 border border-white/5"
+                  className="text-left group flex flex-col bg-bg-surface rounded-2xl p-3 border border-white/5"
                 >
-                  <div className="relative aspect-square rounded-[32px] overflow-hidden bg-bg-surface mb-3 shadow-lg">
+                  <div className="relative aspect-square rounded-xl overflow-hidden bg-bg-surface mb-3 shadow-lg">
                     <img
                       src={podcast.artworkUrl600}
                       alt={podcast.collectionName}
