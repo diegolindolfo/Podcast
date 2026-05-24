@@ -247,7 +247,7 @@ export function Player() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 20 }}
-            className="fixed left-4 right-4 bottom-24 h-18 bg-black/80 backdrop-blur-3xl rounded-xl border border-white/5 shadow-2xl overflow-hidden z-40 cursor-pointer flex items-center px-5"
+            className="fixed left-0 right-0 bottom-16 h-16 bg-bg-surface/95 backdrop-blur-3xl border-t border-b border-white/10 shadow-[0_-10px_35px_rgba(0,0,0,0.4)] overflow-hidden z-40 cursor-pointer flex items-center px-6"
             onClick={() => setIsExpanded(true)}
           >
             <div className="absolute bottom-0 left-0 right-0 h-1 bg-white/5">
@@ -260,18 +260,18 @@ export function Player() {
             <img 
               src={currentEpisode.episodeArtwork || currentEpisode.podcastArtwork} 
               alt="Artwork" 
-              className="w-12 h-12 rounded-lg object-cover mr-4 shadow-lg"
+              className="w-10 h-10 rounded-lg object-cover mr-4 shadow-md"
               referrerPolicy="no-referrer"
             />
             <div className="flex-1 min-w-0">
-              <h4 className="text-sm font-bold text-text-main truncate uppercase tracking-tight">{currentEpisode.title}</h4>
-              <p className="text-[10px] text-text-muted font-bold truncate uppercase tracking-widest leading-none mt-1">{currentEpisode.podcastName}</p>
+              <h4 className="text-xs font-bold text-text-main truncate uppercase tracking-tight">{currentEpisode.title}</h4>
+              <p className="text-[9px] text-text-muted font-bold truncate uppercase tracking-widest leading-none mt-1">{currentEpisode.podcastName}</p>
             </div>
             <button 
               onClick={(e) => { e.stopPropagation(); setIsPlaying(!isPlaying); }}
-              className="w-10 h-10 rounded-full bg-accent-main text-accent-text flex items-center justify-center transition-transform hover:scale-110 active:scale-95"
+              className="w-10 h-10 rounded-full bg-accent-main text-accent-text flex items-center justify-center transition-transform hover:scale-105 active:scale-95"
             >
-              {isPlaying ? <Pause size={20} fill="currentColor" /> : <Play size={20} fill="currentColor" className="ml-1" />}
+              {isPlaying ? <Pause size={18} fill="currentColor" /> : <Play size={18} fill="currentColor" className="ml-0.5" />}
             </button>
           </motion.div>
         )}

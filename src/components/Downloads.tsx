@@ -64,18 +64,18 @@ export function Downloads() {
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, scale: 0.95 }}
                   transition={{ delay: index * 0.05 }}
-                  className="group flex gap-4 p-5 rounded-2xl bg-bg-surface hover:bg-bg-surface-hover transition-all border border-white/5 shadow-2xl"
+                  className="group flex gap-4 p-4 rounded-xl bg-bg-surface hover:bg-bg-surface-hover transition-all border border-white/5 shadow-lg"
                 >
                   <div className="relative flex-shrink-0 w-20 h-20">
                     <img 
                       src={episode.episodeArtwork || episode.podcastArtwork} 
                       alt={episode.podcastName} 
-                      className="w-full h-full rounded-xl object-cover shadow-xl"
+                      className="w-full h-full rounded-lg object-cover shadow-xl"
                       loading="lazy"
                       referrerPolicy="no-referrer"
                     />
                     {isPlayingThis && (
-                      <div className="absolute inset-0 bg-accent-main/20 flex items-center justify-center rounded-xl backdrop-blur-[2px]">
+                      <div className="absolute inset-0 bg-accent-main/20 flex items-center justify-center rounded-lg backdrop-blur-[2px]">
                         <div className="flex gap-1 items-end h-5">
                           <div className="w-1 bg-accent-main animate-[music-bar_0.6s_ease-in-out_infinite]" />
                           <div className="w-1 bg-accent-main animate-[music-bar_0.8s_ease-in-out_infinite]" />
@@ -93,8 +93,8 @@ export function Downloads() {
                       {episode.title}
                     </h3>
                     <p className="text-xs text-text-muted font-bold truncate mb-2">{episode.podcastName}</p>
-                    <div className="flex items-center gap-2 text-[10px] font-bold text-text-muted uppercase tracking-wider">
-                      <span className="bg-white/5 border border-white/5 px-2 py-1 rounded-full">{formatSize(episode.size)}</span>
+                    <div className="flex items-center gap-1.5 text-[10px] font-semibold text-text-muted uppercase tracking-wide">
+                      <span>{formatSize(episode.size)}</span>
                       <span>•</span>
                       <span>{(() => {
                         const date = new Date(episode.downloadedAt);
@@ -109,13 +109,13 @@ export function Downloads() {
                       <>
                         <button 
                           onClick={() => handlePlay(episode)}
-                          className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center text-text-muted hover:bg-accent-main hover:text-accent-text transition-all hover:scale-110 active:scale-95 shadow-lg border border-white/5"
+                          className="w-11 h-11 rounded-xl bg-white/5 flex items-center justify-center text-text-muted hover:bg-accent-main hover:text-accent-text transition-all hover:scale-105 active:scale-95 shadow-lg border border-white/5"
                         >
                           {isPlayingThis ? <Pause size={18} fill="currentColor" /> : <Play size={18} fill="currentColor" className="ml-0.5" />}
                         </button>
                         <button 
                           onClick={() => setConfirmingDelete(episode.id)}
-                          className="w-12 h-12 rounded-full flex items-center justify-center text-text-muted hover:text-red-500 hover:bg-red-500/10 transition-all hover:scale-110 active:scale-95"
+                          className="w-11 h-11 rounded-xl flex items-center justify-center text-text-muted hover:text-red-500 hover:bg-red-500/10 transition-all hover:scale-105 active:scale-95"
                         >
                           <Trash2 size={18} />
                         </button>
@@ -124,18 +124,18 @@ export function Downloads() {
                       <motion.div 
                         initial={{ scale: 0.8, opacity: 0 }}
                         animate={{ scale: 1, opacity: 1 }}
-                        className="flex items-center gap-1 bg-black/40 rounded-full p-1 border border-white/5 shadow-2xl"
+                        className="flex items-center gap-1 bg-black/40 rounded-xl p-1 border border-white/5 shadow-2xl"
                       >
                         <button 
                           onClick={() => handleDelete(episode.id, episode.audioUrl)}
-                          className="w-10 h-10 rounded-full flex items-center justify-center text-red-500 hover:bg-red-500/20 transition-colors"
+                          className="w-9 h-9 rounded-lg flex items-center justify-center text-red-500 hover:bg-red-500/20 transition-colors"
                           title="Confirmar exclusão"
                         >
                           <Check size={16} />
                         </button>
                         <button 
                           onClick={() => setConfirmingDelete(null)}
-                          className="w-10 h-10 rounded-full flex items-center justify-center text-text-muted hover:bg-white/5 transition-colors"
+                          className="w-9 h-9 rounded-lg flex items-center justify-center text-text-muted hover:bg-white/5 transition-colors"
                           title="Cancelar"
                         >
                           <X size={16} />

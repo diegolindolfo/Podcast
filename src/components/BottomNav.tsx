@@ -17,8 +17,8 @@ export function BottomNav({ currentTab, onChange }: BottomNavProps) {
   ];
 
   return (
-    <nav className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[90%] max-w-sm bg-black/60 backdrop-blur-2xl px-4 py-2 z-40 border border-white/10 rounded-full shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
-      <div className="flex justify-between items-center h-14">
+    <nav className="fixed bottom-0 left-0 right-0 bg-bg-surface/90 backdrop-blur-3xl z-40 border-t border-white/10 shadow-[0_-5px_30px_rgba(0,0,0,0.5)]">
+      <div className="max-w-md mx-auto flex justify-between items-center h-16 px-6 pb-[env(safe-area-inset-bottom,2px)]">
         {tabs.map((tab) => {
           const Icon = tab.icon;
           const isActive = currentTab === tab.id;
@@ -27,17 +27,20 @@ export function BottomNav({ currentTab, onChange }: BottomNavProps) {
               key={tab.id}
               onClick={() => onChange(tab.id)}
               className={clsx(
-                'flex flex-col items-center justify-center w-12 h-12 rounded-full transition-all duration-300 relative',
-                isActive ? 'text-accent-main scale-110' : 'text-text-muted hover:text-text-main'
+                'flex flex-col items-center justify-center flex-1 py-1 transition-all relative',
+                isActive ? 'text-accent-main scale-105 font-bold' : 'text-text-muted hover:text-text-main hover:scale-105'
               )}
             >
               <Icon 
                 size={22} 
               />
+              <span className="text-[9px] mt-1 font-medium tracking-wide uppercase select-none">
+                {tab.label}
+              </span>
               {isActive && (
                 <motion.div 
                    layoutId="activeTab"
-                  className="absolute -bottom-1 w-1 h-1 bg-accent-main rounded-full"
+                  className="absolute bottom-0 w-8 h-[2px] bg-accent-main rounded-full"
                 />
               )}
             </button>

@@ -87,18 +87,18 @@ export function History() {
                   initial={{ opacity: 0, x: -10 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: index * 0.03 }}
-                  className="group flex gap-4 p-5 rounded-2xl bg-bg-surface hover:bg-bg-surface-hover transition-all border border-white/5 shadow-2xl"
+                  className="group flex gap-4 p-4 rounded-xl bg-bg-surface hover:bg-bg-surface-hover transition-all border border-white/5 shadow-lg"
                 >
                   <div className="relative flex-shrink-0 w-20 h-20">
                     <img 
                       src={episode.episodeArtwork || episode.podcastArtwork} 
                       alt={episode.podcastName} 
-                      className="w-full h-full rounded-xl object-cover shadow-xl"
+                      className="w-full h-full rounded-lg object-cover shadow-xl"
                       loading="lazy"
                       referrerPolicy="no-referrer"
                     />
                     {isPlayingThis && (
-                      <div className="absolute inset-0 bg-accent-main/20 flex items-center justify-center rounded-xl backdrop-blur-[2px]">
+                      <div className="absolute inset-0 bg-accent-main/20 flex items-center justify-center rounded-lg backdrop-blur-[2px]">
                         <div className="flex gap-1 items-end h-5">
                           <div className="w-1 bg-accent-main animate-[music-bar_0.6s_ease-in-out_infinite]" />
                           <div className="w-1 bg-accent-main animate-[music-bar_0.8s_ease-in-out_infinite]" />
@@ -121,7 +121,7 @@ export function History() {
                   <div className="flex items-center">
                     <button 
                       onClick={() => handlePlay(episode)}
-                      className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center text-text-muted hover:bg-accent-main hover:text-accent-text transition-all hover:scale-110 active:scale-95 shadow-lg border border-white/5"
+                      className="w-11 h-11 rounded-xl bg-white/5 flex items-center justify-center text-text-muted hover:bg-accent-main hover:text-accent-text transition-all hover:scale-105 active:scale-95 shadow-lg border border-white/5"
                     >
                       {isPlayingThis ? <Pause size={18} fill="currentColor" /> : <Play size={18} fill="currentColor" className="ml-0.5" />}
                     </button>

@@ -194,20 +194,20 @@ export function Home({ onSelectPodcast }: HomeProps) {
                   initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: index * 0.05 }}
-                  className="snap-start shrink-0 w-80 bg-bg-surface hover:bg-bg-surface-hover transition-all border border-white/5 rounded-2xl p-5 flex flex-col gap-4 cursor-pointer shadow-xl"
+                  className="snap-start shrink-0 w-80 bg-bg-surface hover:bg-bg-surface-hover transition-all border border-white/5 rounded-xl p-4 flex flex-col gap-3 cursor-pointer shadow-lg"
                   onClick={() => handlePlayEpisode(episode)}
                 >
                   <div className="flex gap-4">
-                    <div className="relative w-24 h-24 shrink-0">
+                    <div className="relative w-20 h-20 shrink-0">
                       <img 
                         src={episode.episodeArtwork || episode.podcastArtwork} 
-                        className="w-full h-full rounded-xl object-cover shadow-2xl" 
+                        className="w-full h-full rounded-lg object-cover shadow-md" 
                         alt={episode.title}
                         loading="lazy"
                         referrerPolicy="no-referrer"
                       />
                       {isPlayingThis && (
-                        <div className="absolute inset-0 bg-accent-main/20 flex items-center justify-center rounded-xl backdrop-blur-[2px]">
+                        <div className="absolute inset-0 bg-accent-main/20 flex items-center justify-center rounded-lg backdrop-blur-[2px]">
                           <div className="flex gap-1 items-end h-5">
                             <div className="w-1 bg-accent-main animate-[music-bar_0.6s_ease-in-out_infinite]" />
                             <div className="w-1 bg-accent-main animate-[music-bar_0.8s_ease-in-out_infinite]" />
@@ -218,34 +218,35 @@ export function Home({ onSelectPodcast }: HomeProps) {
                     </div>
                     <div className="flex-1 flex flex-col justify-center min-w-0">
                       <h3 className={
-                        `font-bold text-base line-clamp-2 leading-tight transition-colors ${isPlayingThis ? 'text-accent-main' : 'text-text-main'}`
+                        `font-semibold text-sm line-clamp-2 leading-tight transition-colors ${isPlayingThis ? 'text-accent-main' : 'text-text-main'}`
                       }>
                         {episode.title}
                       </h3>
-                      <p className="text-xs text-text-muted font-bold truncate mt-1">{episode.podcastName}</p>
+                      <p className="text-[11px] text-text-muted font-bold truncate mt-1">{episode.podcastName}</p>
                     </div>
                   </div>
                   <div className="flex items-center justify-between mt-auto">
-                    <div className="flex items-center gap-2 text-[10px] font-black text-text-muted uppercase tracking-tighter">
+                    <div className="flex items-center gap-1.5 text-[10px] font-semibold text-text-muted uppercase tracking-wide">
                       {episode.pubDate && (
-                        <span className="bg-white/5 px-2 py-1 rounded-full border border-white/5">
+                        <span>
                           {(() => {
                             const date = new Date(episode.pubDate);
                             return isNaN(date.getTime()) ? '' : format(date, "d MMM", { locale: ptBR });
                           })()}
                         </span>
                       )}
+                      {episode.pubDate && episode.duration && <span>•</span>}
                       {episode.duration && (
-                        <span className="bg-white/5 px-2 py-1 rounded-full border border-white/5">
+                        <span>
                           {formatDuration(episode.duration)}
                         </span>
                       )}
                     </div>
                     <button 
-                      className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${isPlayingThis ? 'bg-accent-main text-accent-text' : 'bg-text-main text-black'}`}
+                      className={`w-9 h-9 rounded-full flex items-center justify-center transition-all ${isPlayingThis ? 'bg-accent-main text-accent-text' : 'bg-text-main text-black'}`}
                       onClick={(e) => { e.stopPropagation(); handlePlayEpisode(episode); }}
                     >
-                      <Play size={16} className={isPlayingThis ? "" : "ml-0.5"} fill="currentColor" />
+                      <Play size={14} className={isPlayingThis ? "" : "ml-0.5"} fill="currentColor" />
                     </button>
                   </div>
                 </motion.div>
@@ -282,9 +283,9 @@ export function Home({ onSelectPodcast }: HomeProps) {
                   transition={{ delay: index * 0.03 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={() => onSelectPodcast(podcast)}
-                  className="text-left group flex flex-col bg-bg-surface rounded-2xl p-3 border border-white/5"
+                  className="text-left group flex flex-col bg-bg-surface rounded-xl p-3 border border-white/5"
                 >
-                  <div className="relative aspect-square rounded-xl overflow-hidden bg-bg-surface mb-3 shadow-lg">
+                  <div className="relative aspect-square rounded-lg overflow-hidden bg-bg-surface mb-3 shadow-lg">
                     <img
                       src={podcast.artworkUrl600}
                       alt={podcast.collectionName}

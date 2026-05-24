@@ -226,32 +226,26 @@ export function PodcastDetail({ podcast, onBack }: PodcastDetailProps) {
                         </div>
                       </div>
                     )}
-                  </div>
-
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-3 mb-2 text-[10px] font-black uppercase tracking-widest text-text-muted">
+                  </div>                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5 text-[11px] font-semibold text-text-muted mb-1.5 uppercase tracking-wide">
                       {episode.pubDate && (
-                        <div className="flex items-center gap-1.5 bg-white/5 px-2.5 py-1 rounded-full">
-                          <Calendar size={12} className="text-accent-main" />
-                          <span>
-                            {(() => {
-                              const date = new Date(episode.pubDate);
-                              if (isNaN(date.getTime())) return '';
-                              return format(date, "d 'de' MMM, yyyy", { locale: ptBR });
-                            })()}
-                          </span>
-                        </div>
+                        <span>
+                          {(() => {
+                            const date = new Date(episode.pubDate);
+                            if (isNaN(date.getTime())) return '';
+                            return format(date, "d 'de' MMM", { locale: ptBR });
+                          })()}
+                        </span>
                       )}
                       
+                      {episode.pubDate && episode.duration && <span>•</span>}
+
                       {episode.duration && (
-                        <div className="flex items-center gap-1.5 bg-white/5 px-2.5 py-1 rounded-full">
-                          <Clock size={12} className="text-accent-main" />
-                          <span>{formatDuration(episode.duration)}</span>
-                        </div>
+                        <span>{formatDuration(episode.duration)}</span>
                       )}
                     </div>
                     <h3 className={clsx(
-                      "font-bold text-base leading-snug mb-2 line-clamp-2 transition-colors",
+                      "font-semibold text-base leading-snug mb-2 line-clamp-2 transition-colors",
                       currentEpisode?.id === episode.id ? "text-accent-main" : "text-text-main group-hover:text-accent-main"
                     )}>
                       {episode.title}
@@ -264,7 +258,7 @@ export function PodcastDetail({ podcast, onBack }: PodcastDetailProps) {
                       <button 
                         onClick={() => handlePlay(episode)}
                         className={clsx(
-                          "flex items-center gap-2 px-5 py-2.5 rounded-full text-xs font-black uppercase tracking-widest transition-all hover:scale-105 active:scale-95 shadow-md",
+                          "flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all hover:scale-105 active:scale-95 shadow-md",
                           isPlayingThis 
                             ? "bg-accent-main text-accent-text" 
                             : "bg-white/5 text-text-muted hover:bg-white/10 hover:text-text-main"
@@ -276,14 +270,14 @@ export function PodcastDetail({ podcast, onBack }: PodcastDetailProps) {
  
                       <div className="ml-auto">
                         {downloadProgress[episode.id] !== undefined ? (
-                          <div className="text-[10px] font-black text-accent-main uppercase tracking-widest bg-accent-main/10 px-3 py-1.5 rounded-full animate-pulse">
-                            {downloadProgress[episode.id]}% BAixando
+                          <div className="text-[10px] font-black text-accent-main uppercase tracking-widest bg-accent-main/10 px-3 py-1.5 rounded-xl animate-pulse">
+                            {downloadProgress[episode.id]}% Baixando
                           </div>
                         ) : (
                           <button 
                             onClick={() => handleDownload(episode, isDownloaded)}
                             className={clsx(
-                              "w-10 h-10 rounded-full flex items-center justify-center transition-all hover:scale-110 active:scale-95",
+                              "w-10 h-10 rounded-xl flex items-center justify-center transition-all hover:scale-110 active:scale-95",
                               isDownloaded 
                                 ? "text-accent-main bg-accent-main/10" 
                                 : "text-text-muted bg-white/5 hover:text-text-main hover:bg-white/10"

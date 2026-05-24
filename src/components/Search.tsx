@@ -145,9 +145,9 @@ export function Search({ onSelectPodcast }: SearchProps) {
           <button
             key={podcast.collectionId}
             onClick={() => onSelectPodcast(podcast)}
-            className="text-left group flex flex-col bg-bg-surface rounded-2xl p-3 border border-white/5 transition-all duration-300 hover:bg-bg-surface-hover shadow-lg"
+            className="text-left group flex flex-col bg-bg-surface rounded-xl p-3 border border-white/5 transition-all duration-300 hover:bg-bg-surface-hover shadow-lg"
           >
-            <div className="relative aspect-square rounded-xl overflow-hidden bg-bg-surface mb-3 shadow-md">
+            <div className="relative aspect-square rounded-lg overflow-hidden bg-bg-surface mb-3 shadow-md">
               <img
                 src={podcast.artworkUrl600}
                 alt={podcast.collectionName}
@@ -156,7 +156,7 @@ export function Search({ onSelectPodcast }: SearchProps) {
                 referrerPolicy="no-referrer"
               />
               {selectedCategory && (
-                <div className="absolute top-3 left-3 bg-bg-main/80 backdrop-blur-md text-text-main text-[10px] font-black px-2 py-1 rounded-full border border-white/5">
+                <div className="absolute top-3 left-3 bg-bg-main/80 backdrop-blur-md text-text-main text-[10px] font-black px-2 py-1 rounded-lg border border-white/5">
                   #{results.indexOf(podcast) + 1}
                 </div>
               )}
