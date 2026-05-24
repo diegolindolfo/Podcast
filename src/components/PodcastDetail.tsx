@@ -206,8 +206,28 @@ export function PodcastDetail({ podcast, onBack }: PodcastDetailProps) {
               
               return (                <div 
                   key={episode.id} 
-                  className="py-5 flex gap-4 group border-b border-white/5 last:border-0"
+                  className="py-5 flex gap-4 group border-b border-white/5 last:border-0 items-start"
                 >
+                  {/* Capa do Episódio */}
+                  <div className="relative w-20 h-20 sm:w-24 sm:h-24 shrink-0 rounded-2xl overflow-hidden bg-bg-surface border border-white/5 shadow-md">
+                    <img 
+                      src={episode.episodeArtwork || episode.podcastArtwork || podcast.artworkUrl600} 
+                      alt={episode.title} 
+                      loading="lazy"
+                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                      referrerPolicy="no-referrer"
+                    />
+                    {isPlayingThis && (
+                      <div className="absolute inset-0 bg-accent-main/25 flex items-center justify-center backdrop-blur-[1px]">
+                        <div className="flex gap-1 items-end h-5">
+                          <div className="w-1 bg-accent-text animate-[music-bar_0.6s_ease-in-out_infinite]" />
+                          <div className="w-1 bg-accent-text animate-[music-bar_0.8s_ease-in-out_infinite]" />
+                          <div className="w-1 bg-accent-text animate-[music-bar_0.7s_ease-in-out_infinite]" />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-3 mb-2 text-[10px] font-black uppercase tracking-widest text-text-muted">
                       {episode.pubDate && (

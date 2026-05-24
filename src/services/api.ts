@@ -1,5 +1,6 @@
 /// <reference types="vite/client" />
 import { Podcast } from '../types';
+import { get as idbGet, set as idbSet } from 'idb-keyval';
 
 // Simple memory cache
 const searchCache = new Map<string, Podcast[]>();
@@ -41,10 +42,25 @@ export async function getPodcastFeed(feedUrl: string): Promise<any> {
     return feedCache.get(feedUrl);
   }
 
+  try {
+    const cached = await idbGet(`feed:${feedUrl}`);
+    if (cached && typeof cached === 'object' && cached.timestamp && Date.now() - cached.timestamp < 15 * 60 * 1000) {
+      feedCache.set(feedUrl, cached.data);
+      return cached.data;
+    }
+  } catch (err) {
+    console.warn('IDB cache read failed', err);
+  }
+
   const res = await fetch(`/api/feed?url=${encodeURIComponent(feedUrl)}`);
   if (!res.ok) throw new Error('Failed to fetch feed');
   const data = await res.json();
   
   feedCache.set(feedUrl, data);
+  try {
+    await idbSet(`feed:${feedUrl}`, { timestamp: Date.now(), data });
+  } catch (err) {
+    console.warn('IDB cache write failed', err);
+  }
   return data;
 }
