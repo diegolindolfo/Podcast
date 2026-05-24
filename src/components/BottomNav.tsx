@@ -28,7 +28,7 @@ export function BottomNav({ currentTab, onChange }: BottomNavProps) {
               onClick={() => onChange(tab.id)}
               className={clsx(
                 'flex flex-col items-center justify-center w-12 h-12 rounded-full transition-all duration-300 relative',
-                isActive ? 'text-accent-lime scale-110' : 'text-text-muted hover:text-text-main'
+                isActive ? 'text-accent-main scale-110' : 'text-text-muted hover:text-text-main'
               )}
             >
               <Icon 
@@ -36,8 +36,8 @@ export function BottomNav({ currentTab, onChange }: BottomNavProps) {
               />
               {isActive && (
                 <motion.div 
-                  layoutId="activeTab"
-                  className="absolute -bottom-1 w-1 h-1 bg-accent-lime rounded-full"
+                   layoutId="activeTab"
+                  className="absolute -bottom-1 w-1 h-1 bg-accent-main rounded-full"
                 />
               )}
             </button>

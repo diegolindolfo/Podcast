@@ -127,74 +127,59 @@ export function Home({ onSelectPodcast }: HomeProps) {
 
   return (
     <div className="p-4 pb-28 min-h-screen bg-bg-main">
-      {/* Bento Header Section */}
-      <div className="pt-safe pb-8 flex flex-col gap-4">
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
+      {/* Quiet Apple Podcasts Style Header */}
+      <div className="pt-safe pb-6">
+        <h1 className="text-4xl font-extrabold tracking-tight text-text-main mb-1">Ouvindo Agora</h1>
+        <p className="text-[10px] font-bold text-text-muted uppercase tracking-widest px-0.5">Seu feed de podcasts atualizados</p>
+      </div>
+
+      {/* Sleek, Uncluttered Widescreen Continue Listening Card */}
+      {pendingEpisode && (
+        <motion.div
+          initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-accent-lime rounded-2xl p-6 text-black relative overflow-hidden flex flex-col h-64 justify-between shadow-2xl"
+          onClick={() => handlePlayEpisode(pendingEpisode)}
+          className="mb-8 p-4 rounded-xl bg-bg-surface hover:bg-bg-surface-hover border border-white/5 cursor-pointer transition-all duration-300 relative overflow-hidden group shadow-lg flex gap-4 min-w-0"
         >
-          {/* Decorative shapes to match reference */}
-          <div className="absolute top-0 right-0 w-32 h-32 bg-black/5 rounded-full -mr-16 -mt-16" />
-          <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/10 rounded-full -ml-12 -mb-12" />
-
-          <div className="flex justify-between items-start z-10">
-            <div>
-              <span className="text-[10px] font-bold uppercase tracking-widest opacity-60">Status da Biblioteca</span>
-              <h1 className="text-3xl font-bold mt-1 tracking-tight">Ouvindo Agora</h1>
-            </div>
-            <div className="flex gap-2">
-              <div className="p-2 bg-black/10 rounded-full backdrop-blur-sm">
-                <Play size={18} fill="black" />
+          {/* Cover image */}
+          <div className="relative w-16 h-16 shrink-0 rounded-lg overflow-hidden bg-bg-main border border-white/5">
+            <img 
+              src={pendingEpisode.episodeArtwork || pendingEpisode.podcastArtwork} 
+              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" 
+              alt={pendingEpisode.title}
+              loading="lazy"
+              referrerPolicy="no-referrer"
+            />
+            {isPlaying && currentEpisode?.id === pendingEpisode.id && (
+              <div className="absolute inset-0 bg-accent-main/20 flex items-center justify-center backdrop-blur-[1px]">
+                <div className="flex gap-1 items-end h-5">
+                  <div className="w-1 bg-accent-main animate-[music-bar_0.6s_ease-in-out_infinite]" />
+                  <div className="w-1 bg-accent-main animate-[music-bar_0.8s_ease-in-out_infinite]" />
+                  <div className="w-1 bg-accent-main animate-[music-bar_0.7s_ease-in-out_infinite]" />
+                </div>
               </div>
-            </div>
+            )}
           </div>
-
-          <div className="z-10">
-            <h2 className="text-5xl font-black tracking-tighter leading-none mb-4">
-              {subscriptions.length} <span className="text-2xl font-bold tracking-tight">Podcasts</span>
-            </h2>
-            <div className="w-full h-2 bg-black/10 rounded-full overflow-hidden">
-              <div className="h-full bg-black w-[65%] rounded-full" />
-            </div>
-            <div className="flex justify-between items-center mt-2 font-bold text-xs">
-              <span className="opacity-60 text-[10px]">Meta de audição</span>
-              <span className="text-[10px]">65%</span>
+          
+          <div className="flex-1 min-w-0 flex flex-col justify-center">
+            <span className="text-[9px] font-black uppercase tracking-wider text-accent-main mb-0.5">
+              {currentEpisode?.id === pendingEpisode.id && isPlaying ? 'Tocando Agora' : 'Para Ouvir'}
+            </span>
+            <h3 className="font-bold text-sm leading-tight text-text-main line-clamp-1 group-hover:text-accent-main transition-colors duration-200">
+              {pendingEpisode.title}
+            </h3>
+            <p className="text-[11px] text-text-muted font-bold truncate mt-1">
+              {pendingEpisode.podcastName}
+            </p>
+          </div>
+          
+          <div className="flex items-center shrink-0">
+            <div className="w-9 h-9 rounded-full bg-white/5 group-hover:bg-accent-main group-hover:text-accent-text flex items-center justify-center text-text-muted transition-all duration-300">
+              <Play size={14} fill="currentColor" className="ml-0.5 group-hover:fill-current" />
             </div>
           </div>
         </motion.div>
-
-        <div className="flex gap-4">
-          <motion.div 
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.1 }}
-            onClick={() => pendingEpisode && handlePlayEpisode(pendingEpisode)}
-            className={`flex-1 bg-white/5 rounded-2xl p-5 border border-white/5 backdrop-blur-3xl flex flex-col justify-between min-w-0 select-none duration-200 ${pendingEpisode ? "cursor-pointer hover:bg-white/10 active:scale-[0.98] transition-all" : ""}`}
-          >
-            <div>
-              <div className="bg-white/10 w-8 h-8 rounded-full flex items-center justify-center mb-4">
-                <div className={`w-2 h-2 rounded-full ${isPlaying && currentEpisode?.id === pendingEpisode?.id ? 'bg-accent-lime animate-pulse' : 'bg-text-muted'}`} />
-              </div>
-              <span className="text-[10px] font-black text-text-muted uppercase tracking-wider block">
-                {currentEpisode?.id === pendingEpisode?.id ? 'Tocando Agora' : pendingEpisode ? 'Para Ouvir' : 'Próximo'}
-              </span>
-              <p className="font-bold text-sm mt-1 truncate max-w-full text-text-main">
-                {pendingEpisode ? pendingEpisode.title : 'Nenhum pendente'}
-              </p>
-            </div>
-          </motion.div>
-          <motion.div 
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.1 }}
-            className="flex-1 bg-bg-surface rounded-2xl p-5 border border-white/5"
-          >
-            <h3 className="text-2xl font-bold leading-none mb-1">{latestEpisodes.length}</h3>
-            <p className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Novidades</p>
-          </motion.div>
-        </div>
-      </div>
+      )}
 
       {latestEpisodes.length > 0 && (
         <div className="mb-8">
@@ -222,18 +207,18 @@ export function Home({ onSelectPodcast }: HomeProps) {
                         referrerPolicy="no-referrer"
                       />
                       {isPlayingThis && (
-                        <div className="absolute inset-0 bg-accent-lime/20 flex items-center justify-center rounded-xl backdrop-blur-[2px]">
+                        <div className="absolute inset-0 bg-accent-main/20 flex items-center justify-center rounded-xl backdrop-blur-[2px]">
                           <div className="flex gap-1 items-end h-5">
-                            <div className="w-1 bg-accent-lime animate-[music-bar_0.6s_ease-in-out_infinite]" />
-                            <div className="w-1 bg-accent-lime animate-[music-bar_0.8s_ease-in-out_infinite]" />
-                            <div className="w-1 bg-accent-lime animate-[music-bar_0.7s_ease-in-out_infinite]" />
+                            <div className="w-1 bg-accent-main animate-[music-bar_0.6s_ease-in-out_infinite]" />
+                            <div className="w-1 bg-accent-main animate-[music-bar_0.8s_ease-in-out_infinite]" />
+                            <div className="w-1 bg-accent-main animate-[music-bar_0.7s_ease-in-out_infinite]" />
                           </div>
                         </div>
                       )}
                     </div>
                     <div className="flex-1 flex flex-col justify-center min-w-0">
                       <h3 className={
-                        `font-bold text-base line-clamp-2 leading-tight transition-colors ${isPlayingThis ? 'text-accent-lime' : 'text-text-main'}`
+                        `font-bold text-base line-clamp-2 leading-tight transition-colors ${isPlayingThis ? 'text-accent-main' : 'text-text-main'}`
                       }>
                         {episode.title}
                       </h3>
@@ -257,7 +242,7 @@ export function Home({ onSelectPodcast }: HomeProps) {
                       )}
                     </div>
                     <button 
-                      className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${isPlayingThis ? 'bg-accent-lime text-black' : 'bg-text-main text-black'}`}
+                      className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${isPlayingThis ? 'bg-accent-main text-accent-text' : 'bg-text-main text-black'}`}
                       onClick={(e) => { e.stopPropagation(); handlePlayEpisode(episode); }}
                     >
                       <Play size={16} className={isPlayingThis ? "" : "ml-0.5"} fill="currentColor" />
@@ -309,10 +294,10 @@ export function Home({ onSelectPodcast }: HomeProps) {
                     />
                     
                     {hasNewEpisode && (
-                      <div className="absolute top-3 right-3 w-3 h-3 bg-accent-lime rounded-full shadow-[0_0_15px_rgba(217,249,157,0.5)]" />
+                      <div className="absolute top-3 right-3 w-3 h-3 bg-accent-main rounded-full" />
                     )}
                   </div>
-                  <h3 className="font-bold text-sm line-clamp-1 leading-tight group-hover:text-accent-lime transition-colors text-text-main px-1">
+                  <h3 className="font-bold text-sm line-clamp-1 leading-tight group-hover:text-accent-main transition-colors text-text-main px-1">
                     {podcast.collectionName}
                   </h3>
                   <p className="text-[10px] font-bold text-text-muted truncate mt-1 px-1 uppercase tracking-wider">{podcast.artistName}</p>

@@ -252,7 +252,7 @@ export function Player() {
           >
             <div className="absolute bottom-0 left-0 right-0 h-1 bg-white/5">
               <div 
-                className="h-full bg-accent-lime transition-all duration-300 ease-linear"
+                className="h-full bg-accent-main transition-all duration-300 ease-linear"
                 style={{ width: `${(progress / (duration || 1)) * 100}%` }}
               />
             </div>
@@ -269,7 +269,7 @@ export function Player() {
             </div>
             <button 
               onClick={(e) => { e.stopPropagation(); setIsPlaying(!isPlaying); }}
-              className="w-10 h-10 rounded-full bg-accent-lime text-black flex items-center justify-center transition-transform hover:scale-110 active:scale-95"
+              className="w-10 h-10 rounded-full bg-accent-main text-accent-text flex items-center justify-center transition-transform hover:scale-110 active:scale-95"
             >
               {isPlaying ? <Pause size={20} fill="currentColor" /> : <Play size={20} fill="currentColor" className="ml-1" />}
             </button>
@@ -308,11 +308,11 @@ export function Player() {
                     referrerPolicy="no-referrer"
                   />
                   {isPlaying && (
-                    <div className="absolute -bottom-6 -right-6 w-20 h-20 bg-accent-lime rounded-full flex items-center justify-center shadow-2xl animate-pulse">
-                      <div className="flex gap-1 items-end h-6">
-                        <div className="w-1.5 h-3 bg-black rounded-full" />
-                        <div className="w-1.5 h-6 bg-black rounded-full" />
-                        <div className="w-1.5 h-4 bg-black rounded-full" />
+                    <div className="absolute -bottom-6 -right-6 w-16 h-16 bg-accent-main rounded-full flex items-center justify-center shadow-2xl">
+                      <div className="flex gap-1 items-end h-5">
+                        <div className="w-1 h-3 bg-accent-text rounded-full" />
+                        <div className="w-1 h-5 bg-accent-text rounded-full" />
+                        <div className="w-1 h-4 bg-accent-text rounded-full" />
                       </div>
                     </div>
                   )}
@@ -320,7 +320,7 @@ export function Player() {
                 
                 <div className="text-center w-full mb-12 px-4">
                   <h2 className="text-3xl font-black text-text-main mb-3 line-clamp-2 leading-tight tracking-tight">{currentEpisode.title}</h2>
-                  <p className="text-accent-lime font-bold text-sm uppercase tracking-widest">{currentEpisode.podcastName}</p>
+                  <p className="text-accent-main font-bold text-sm uppercase tracking-widest">{currentEpisode.podcastName}</p>
                 </div>
 
                 <div className="w-full mb-12 px-2">
@@ -335,7 +335,7 @@ export function Player() {
                     />
                     <div className="w-full h-3 bg-white/5 rounded-full overflow-hidden">
                       <div 
-                        className="h-full bg-accent-lime transition-all duration-150 ease-out"
+                        className="h-full bg-accent-main transition-all duration-150 ease-out"
                         style={{ width: `${(progress / (duration || 1)) * 100}%` }}
                       />
                     </div>
@@ -352,9 +352,9 @@ export function Player() {
                   </button>
                   <button 
                     onClick={() => setIsPlaying(!isPlaying)}
-                    className="w-24 h-24 flex items-center justify-center bg-accent-lime text-black rounded-full hover:scale-105 active:scale-95 transition-all shadow-[0_20px_40px_rgba(217,249,157,0.3)]"
+                    className="w-20 h-20 flex items-center justify-center bg-accent-main text-accent-text rounded-full hover:scale-105 active:scale-95 transition-all shadow-xl"
                   >
-                    {isPlaying ? <Pause size={36} fill="currentColor" /> : <Play size={36} fill="currentColor" className="ml-1.5" />}
+                    {isPlaying ? <Pause size={30} fill="currentColor" /> : <Play size={30} fill="currentColor" className="ml-1" />}
                   </button>
                   <button onClick={() => skip(30)} className="w-14 h-14 rounded-full bg-white/5 flex items-center justify-center text-text-muted hover:text-text-main transition-all hover:scale-110 active:scale-90">
                     <SkipForward size={24} fill="currentColor" />
@@ -367,7 +367,7 @@ export function Player() {
                       onClick={() => { setShowSpeedMenu(!showSpeedMenu); setShowTimerMenu(false); }}
                       className={clsx(
                         "flex items-center gap-2 px-5 py-3 rounded-full text-[10px] font-black uppercase tracking-widest transition-all shadow-lg",
-                        playbackRate !== 1 ? "bg-accent-lime text-black" : "bg-white/5 text-text-muted hover:text-text-main"
+                        playbackRate !== 1 ? "bg-accent-main text-accent-text" : "bg-white/5 text-text-muted hover:text-text-main"
                       )}
                     >
                       <FastForward size={14} />
@@ -381,7 +381,7 @@ export function Player() {
                             onClick={() => { setPlaybackRate(rate); setShowSpeedMenu(false); }}
                             className={clsx(
                               "block w-full text-left px-6 py-4 text-[10px] font-black uppercase tracking-widest hover:bg-white/5 transition-colors",
-                              playbackRate === rate ? "text-accent-lime" : "text-text-muted"
+                              playbackRate === rate ? "text-accent-main" : "text-text-muted"
                             )}
                           >
                             {rate}x
@@ -396,7 +396,7 @@ export function Player() {
                       onClick={() => { setShowTimerMenu(!showTimerMenu); setShowSpeedMenu(false); }}
                       className={clsx(
                         "flex items-center gap-2 px-5 py-3 rounded-full text-[10px] font-black uppercase tracking-widest transition-all shadow-lg",
-                        sleepTimer ? "bg-accent-lime text-black" : "bg-white/5 text-text-muted hover:text-text-main"
+                        sleepTimer ? "bg-accent-main text-accent-text" : "bg-white/5 text-text-muted hover:text-text-main"
                       )}
                     >
                       <Clock size={14} />
@@ -405,10 +405,10 @@ export function Player() {
                     {showTimerMenu && (
                       <div className="absolute bottom-full right-0 mb-4 bg-bg-surface rounded-xl shadow-2xl overflow-hidden border border-white/5 min-w-[160px] backdrop-blur-xl">
                         <button
-                          onClick={() => handleSetTimer(null)}
+                           onClick={() => handleSetTimer(null)}
                           className={clsx(
                             "block w-full text-left px-6 py-4 text-[10px] font-black uppercase tracking-widest hover:bg-white/5 transition-colors",
-                            !sleepTimer ? "text-accent-lime" : "text-text-muted"
+                            !sleepTimer ? "text-accent-main" : "text-text-muted"
                           )}
                         >
                           Desligado
