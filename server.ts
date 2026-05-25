@@ -1,5 +1,7 @@
 import express from 'express';
 import cors from 'cors';
+import compression from 'compression';
+import rateLimit from 'express-rate-limit';
 import Parser from 'rss-parser';
 import { createServer as createViteServer } from 'vite';
 import webpush from 'web-push';
@@ -9,6 +11,7 @@ import path from 'path';
 import { initializeApp } from 'firebase/app';
 import { getFirestore, collection, getDocs } from 'firebase/firestore';
 import { getAuth, signInAnonymously } from 'firebase/auth';
+import Database from 'better-sqlite3';
 
 // Read Firebase config
 const firebaseConfig = JSON.parse(fs.readFileSync(path.resolve(process.cwd(), 'firebase-applet-config.json'), 'utf-8'));
@@ -20,15 +23,55 @@ const auth = getAuth(firebaseApp);
 
 // VAPID keys for Web Push
 const vapidKeys = {
-  publicKey: process.env.VAPID_PUBLIC_KEY || 'BEl62iUYgUivxIkv69yViEuiBIa-Ib9-SkvMeAtA3LFgDzkrxZJjSgSnfckjBJuBkr3qBUYIHBQFLcg05SRYig',
-  privateKey: process.env.VAPID_PRIVATE_KEY || 'CGcG_epFzG0YBaLpZgXVYEq9VqasTG0RKIyRGG_lIdM'
+  publicKey: process.env.VAPID_PUBLIC_KEY || '',
+  privateKey: process.env.VAPID_PRIVATE_KEY || ''
 };
 
-webpush.setVapidDetails(
-  'mailto:test@example.com',
-  vapidKeys.publicKey,
-  vapidKeys.privateKey
-);
+if (!vapidKeys.publicKey || !vapidKeys.privateKey) {
+  console.warn('⚠️ WARNING: VAPID keys are missing! Web Push notifications will not function properly.');
+  console.warn('Please set VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY in your .env file.');
+} else {
+  webpush.setVapidDetails(
+    'mailto:test@example.com',
+    vapidKeys.publicKey,
+    vapidKeys.privateKey
+  );
+}
+
+// Initialize SQLite database for caching
+const dbPath = path.resolve(process.cwd(), 'api_cache.db');
+const cacheDb = new Database(dbPath);
+
+// Create table if not exists
+cacheDb.exec(`
+  CREATE TABLE IF NOT EXISTS api_cache (
+    key TEXT PRIMARY KEY,
+    data TEXT,
+    expires_at INTEGER
+  )
+`);
+
+// Helper functions for cache
+function getCache(key: string): any | null {
+  try {
+    const row = cacheDb.prepare('SELECT data, expires_at FROM api_cache WHERE key = ?').get(key) as { data: string, expires_at: number } | undefined;
+    if (row && row.expires_at > Date.now()) {
+      return JSON.parse(row.data);
+    }
+  } catch (error) {
+    console.error('SQLite cache read error:', error);
+  }
+  return null;
+}
+
+function setCache(key: string, data: any, ttlMs: number): void {
+  try {
+    const expiresAt = Date.now() + ttlMs;
+    cacheDb.prepare('INSERT OR REPLACE INTO api_cache (key, data, expires_at) VALUES (?, ?, ?)').run(key, JSON.stringify(data), expiresAt);
+  } catch (error) {
+    console.error('SQLite cache write error:', error);
+  }
+}
 
 const latestEpisodesCache: Record<string, string> = {};
 
@@ -91,8 +134,19 @@ async function startServer() {
   const PORT = 3000;
 
   app.use(cors());
+  app.use(compression());
 
-  app.get('/api/health', (req, res) => {
+  // Rate limiter for API endpoints (100 requests per 15 minutes)
+  const apiLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 100,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: 'Muitas requisições vindas deste IP, por favor tente novamente mais tarde.' }
+  });
+  app.use('/api', apiLimiter);
+
+  app.get('/api/health', (_req, res) => {
     res.json({ status: 'ok', timestamp: new Date().toISOString() });
   });
 
@@ -103,13 +157,13 @@ async function startServer() {
     }
   });
 
-  app.get('/api/vapidPublicKey', (req, res) => {
+  app.get('/api/vapidPublicKey', (_req, res) => {
     res.json({ publicKey: vapidKeys.publicKey });
   });
 
-  // Simple in-memory cache for API responses
-  const apiCache: Record<string, { data: any, timestamp: number }> = {};
-  const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+  // Caching TTLs: search/top (1 hour), feed (15 minutes)
+  const SEARCH_TOP_TTL = 60 * 60 * 1000;
+  const FEED_TTL = 15 * 60 * 1000;
 
   app.get('/api/search', async (req, res) => {
     try {
@@ -117,14 +171,15 @@ async function startServer() {
       if (!q) return res.json({ results: [] });
       
       const cacheKey = `search:${q}`;
-      if (apiCache[cacheKey] && Date.now() - apiCache[cacheKey].timestamp < CACHE_TTL) {
-        return res.json(apiCache[cacheKey].data);
+      const cached = getCache(cacheKey);
+      if (cached) {
+        return res.json(cached);
       }
 
       const response = await fetch(`https://itunes.apple.com/search?media=podcast&term=${encodeURIComponent(q as string)}&country=br`);
       const data = await response.json();
       
-      apiCache[cacheKey] = { data, timestamp: Date.now() };
+      setCache(cacheKey, data, SEARCH_TOP_TTL);
       res.json(data);
     } catch (error) {
       console.error('Search error:', error);
@@ -138,8 +193,9 @@ async function startServer() {
       if (!url) return res.status(400).json({ error: 'URL is required' });
       
       const cacheKey = `feed:${url}`;
-      if (apiCache[cacheKey] && Date.now() - apiCache[cacheKey].timestamp < CACHE_TTL) {
-        return res.json(apiCache[cacheKey].data);
+      const cached = getCache(cacheKey);
+      if (cached) {
+        return res.json(cached);
       }
 
       const controller = new AbortController();
@@ -161,7 +217,7 @@ async function startServer() {
         const xml = await response.text();
         const feed = await parser.parseString(xml.trim());
         
-        apiCache[cacheKey] = { data: feed, timestamp: Date.now() };
+        setCache(cacheKey, feed, FEED_TTL);
         res.json(feed);
       } finally {
         clearTimeout(timeout);
@@ -178,8 +234,9 @@ async function startServer() {
       const genreParam = genre ? `/genre=${genre}` : '';
       
       const cacheKey = `top:${genreParam}`;
-      if (apiCache[cacheKey] && Date.now() - apiCache[cacheKey].timestamp < CACHE_TTL) {
-        return res.json(apiCache[cacheKey].data);
+      const cached = getCache(cacheKey);
+      if (cached) {
+        return res.json(cached);
       }
 
       const rssResponse = await fetch(`https://itunes.apple.com/br/rss/toppodcasts/limit=50${genreParam}/json`);
@@ -193,7 +250,7 @@ async function startServer() {
       const lookupResponse = await fetch(`https://itunes.apple.com/lookup?id=${ids}&country=br`);
       const lookupData = await lookupResponse.json();
       
-      apiCache[cacheKey] = { data: lookupData, timestamp: Date.now() };
+      setCache(cacheKey, lookupData, SEARCH_TOP_TTL);
       res.json(lookupData);
     } catch (error) {
       console.error('Top podcasts error:', error);
@@ -210,7 +267,7 @@ async function startServer() {
   } else {
     const distPath = path.join(process.cwd(), 'dist');
     app.use(express.static(distPath));
-    app.get('*', (req, res) => {
+    app.get('*', (_req, res) => {
       res.sendFile(path.join(distPath, 'index.html'));
     });
   }

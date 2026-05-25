@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { useStore } from '../store';
 import { Podcast, Episode } from '../types';
 import { getPodcastFeed } from '../services/api';
-import { downloadEpisode } from '../services/downloader';
 import { Play } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -28,7 +27,6 @@ export function Home({ onSelectPodcast }: HomeProps) {
   } = useStore();
 
   const [latestEpisodes, setLatestEpisodes] = useState<Episode[]>([]);
-  const [loadingEpisodes, setLoadingEpisodes] = useState(false);
 
   // Find a pending/in-progress episode
   let pendingEpisode: Episode | null = currentEpisode;
@@ -58,7 +56,6 @@ export function Home({ onSelectPodcast }: HomeProps) {
 
     let active = true;
     const fetchLatest = async () => {
-      setLoadingEpisodes(true);
       try {
         const promises = subscriptions.map(async (pod) => {
           try {
@@ -108,7 +105,7 @@ export function Home({ onSelectPodcast }: HomeProps) {
       } catch (error) {
         console.error(error);
       } finally {
-        if (active) setLoadingEpisodes(false);
+        // fetch finished
       }
     };
 

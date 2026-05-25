@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ChevronLeft, Play, Pause, Download, Check, Loader2, Plus, Minus, X, Calendar, Clock } from 'lucide-react';
+import { ChevronLeft, Play, Pause, Download, Check, Loader2, Plus } from 'lucide-react';
 import { Podcast, Episode } from '../types';
 import { getPodcastFeed } from '../services/api';
 import { useStore } from '../store';
@@ -20,6 +20,8 @@ export function PodcastDetail({ podcast, onBack }: PodcastDetailProps) {
   const [loading, setLoading] = useState(true);
   const [description, setDescription] = useState('');
   const [downloadProgress, setDownloadProgress] = useState<Record<string, number>>({});
+  const [sortBy, setSortBy] = useState<'newest' | 'oldest'>('newest');
+  const [filterBy, setFilterBy] = useState<'all' | 'unheard' | 'downloaded'>('all');
   
   const { 
     currentEpisode, 
@@ -32,7 +34,10 @@ export function PodcastDetail({ podcast, onBack }: PodcastDetailProps) {
     downloads,
     addListenedPodcast,
     setPodcastLastViewed,
-    setPodcastLatestEpisode
+    setPodcastLatestEpisode,
+    addToQueue,
+    queue,
+    finishedAt
   } = useStore();
 
   const isSubscribed = subscriptions.some(p => p.collectionId === podcast.collectionId);
@@ -188,123 +193,229 @@ export function PodcastDetail({ podcast, onBack }: PodcastDetailProps) {
 
       {/* Episodes */}
       <div className="px-4 py-6">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-bold">Episódios</h2>
-          <span className="text-xs text-text-muted">{episodes.length}</span>
-        </div>
-        
-        {loading ? (
-          <div className="flex flex-col items-center justify-center py-20 gap-4">
-            <Loader2 className="animate-spin text-accent-main" size={24} />
-            <p className="text-xs text-text-muted">Carregando...</p>
-          </div>
-        ) : (
-          <div className="divide-y divide-border-subtle">
-            {episodes.slice(0, visibleCount).map((episode) => {
-              const isPlayingThis = currentEpisode?.id === episode.id && isPlaying;
-              const isDownloaded = downloads.some(d => d.id === episode.id);
-              
-              return (                <div 
-                  key={episode.id} 
-                  className="py-5 flex gap-4 group border-b border-white/5 last:border-0 items-start"
-                >
-                  {/* Capa do Episódio */}
-                  <div className="relative w-20 h-20 sm:w-24 sm:h-24 shrink-0 rounded-xl overflow-hidden bg-bg-surface border border-white/5 shadow-md">
-                    <img 
-                      src={episode.episodeArtwork || episode.podcastArtwork || podcast.artworkUrl600} 
-                      alt={episode.title} 
-                      loading="lazy"
-                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                      referrerPolicy="no-referrer"
-                    />
-                    {isPlayingThis && (
-                      <div className="absolute inset-0 bg-accent-main/25 flex items-center justify-center backdrop-blur-[1px]">
-                        <div className="flex gap-1 items-end h-5">
-                          <div className="w-1 bg-accent-text animate-[music-bar_0.6s_ease-in-out_infinite]" />
-                          <div className="w-1 bg-accent-text animate-[music-bar_0.8s_ease-in-out_infinite]" />
-                          <div className="w-1 bg-accent-text animate-[music-bar_0.7s_ease-in-out_infinite]" />
-                        </div>
-                      </div>
-                    )}
-                  </div>                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-1.5 text-[11px] font-semibold text-text-muted mb-1.5 uppercase tracking-wide">
-                      {episode.pubDate && (
-                        <span>
-                          {(() => {
-                            const date = new Date(episode.pubDate);
-                            if (isNaN(date.getTime())) return '';
-                            return format(date, "d 'de' MMM", { locale: ptBR });
-                          })()}
-                        </span>
-                      )}
-                      
-                      {episode.pubDate && episode.duration && <span>•</span>}
+        {(() => {
+          const filteredAndSortedEpisodes = episodes
+            .filter(episode => {
+              if (filterBy === 'all') return true;
+              if (filterBy === 'downloaded') {
+                return downloads.some(d => d.id === episode.id);
+              }
+              if (filterBy === 'unheard') {
+                return finishedAt[episode.id] === undefined;
+              }
+              return true;
+            })
+            .sort((a, b) => {
+              const dateA = a.pubDate ? new Date(a.pubDate).getTime() : 0;
+              const dateB = b.pubDate ? new Date(b.pubDate).getTime() : 0;
+              return sortBy === 'newest' ? dateB - dateA : dateA - dateB;
+            });
 
-                      {episode.duration && (
-                        <span>{formatDuration(episode.duration)}</span>
-                      )}
-                    </div>
-                    <h3 className={clsx(
-                      "font-semibold text-base leading-snug mb-2 line-clamp-2 transition-colors",
-                      currentEpisode?.id === episode.id ? "text-accent-main" : "text-text-main group-hover:text-accent-main"
-                    )}>
-                      {episode.title}
-                    </h3>
-                    <p className="text-xs text-text-muted line-clamp-2 mb-4 leading-relaxed">
-                      {episode.description}
-                    </p>
-                    
-                    <div className="flex items-center gap-4">
-                      <button 
-                        onClick={() => handlePlay(episode)}
+          return (
+            <>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-bold">Episódios</h2>
+                <span className="text-xs text-text-muted">
+                  {filteredAndSortedEpisodes.length !== episodes.length 
+                    ? `${filteredAndSortedEpisodes.length} de ${episodes.length}` 
+                    : episodes.length}
+                </span>
+              </div>
+
+              {!loading && (
+                <div className="flex flex-col gap-3 mb-6">
+                  {/* Filtro e Ordenação em Linha com visual moderno */}
+                  <div className="flex flex-wrap gap-3 justify-between items-center bg-white/5 p-2 rounded-2xl border border-white/5">
+                    <div className="flex items-center gap-1 bg-black/20 p-1 rounded-xl">
+                      <button
+                        onClick={() => setFilterBy('all')}
                         className={clsx(
-                          "flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all hover:scale-105 active:scale-95 shadow-md",
-                          isPlayingThis 
-                            ? "bg-accent-main text-accent-text" 
-                            : "bg-white/5 text-text-muted hover:bg-white/10 hover:text-text-main"
+                          "px-3 py-1.5 rounded-lg text-xs font-semibold transition-all",
+                          filterBy === 'all' ? "bg-accent-main text-accent-text" : "text-text-muted hover:text-text-main"
                         )}
                       >
-                        {isPlayingThis ? <Pause size={14} fill="currentColor" /> : <Play size={14} fill="currentColor" className="ml-0.5" />}
-                        {isPlayingThis ? 'Pausar' : 'Ouvir'}
+                        Todos
                       </button>
- 
-                      <div className="ml-auto">
-                        {downloadProgress[episode.id] !== undefined ? (
-                          <div className="text-[10px] font-black text-accent-main uppercase tracking-widest bg-accent-main/10 px-3 py-1.5 rounded-xl animate-pulse">
-                            {downloadProgress[episode.id]}% Baixando
-                          </div>
-                        ) : (
-                          <button 
-                            onClick={() => handleDownload(episode, isDownloaded)}
-                            className={clsx(
-                              "w-10 h-10 rounded-xl flex items-center justify-center transition-all hover:scale-110 active:scale-95",
-                              isDownloaded 
-                                ? "text-accent-main bg-accent-main/10" 
-                                : "text-text-muted bg-white/5 hover:text-text-main hover:bg-white/10"
-                            )}
-                          >
-                            {isDownloaded ? <Check size={16} /> : <Download size={16} />}
-                          </button>
+                      <button
+                        onClick={() => setFilterBy('unheard')}
+                        className={clsx(
+                          "px-3 py-1.5 rounded-lg text-xs font-semibold transition-all",
+                          filterBy === 'unheard' ? "bg-accent-main text-accent-text" : "text-text-muted hover:text-text-main"
                         )}
-                      </div>
+                      >
+                        Não Ouvidos
+                      </button>
+                      <button
+                        onClick={() => setFilterBy('downloaded')}
+                        className={clsx(
+                          "px-3 py-1.5 rounded-lg text-xs font-semibold transition-all",
+                          filterBy === 'downloaded' ? "bg-accent-main text-accent-text" : "text-text-muted hover:text-text-main"
+                        )}
+                      >
+                        Baixados
+                      </button>
+                    </div>
+
+                    <div className="flex items-center gap-1 bg-black/20 p-1 rounded-xl">
+                      <button
+                        onClick={() => setSortBy('newest')}
+                        className={clsx(
+                          "px-3 py-1.5 rounded-lg text-xs font-semibold transition-all",
+                          sortBy === 'newest' ? "bg-accent-main text-accent-text" : "text-text-muted hover:text-text-main"
+                        )}
+                      >
+                        Mais Recentes
+                      </button>
+                      <button
+                        onClick={() => setSortBy('oldest')}
+                        className={clsx(
+                          "px-3 py-1.5 rounded-lg text-xs font-semibold transition-all",
+                          sortBy === 'oldest' ? "bg-accent-main text-accent-text" : "text-text-muted hover:text-text-main"
+                        )}
+                      >
+                        Mais Antigos
+                      </button>
                     </div>
                   </div>
                 </div>
-              );
-            })}
-            
-            {visibleCount < episodes.length && (
-              <div className="flex justify-center py-8">
-                <button
-                  onClick={() => setVisibleCount(prev => prev + 50)}
-                  className="px-6 py-2 rounded-full border border-border-subtle text-text-muted text-xs font-semibold"
-                >
-                  Ver mais
-                </button>
-              </div>
-            )}
-          </div>
-        )}
+              )}
+
+              {loading ? (
+                <div className="flex flex-col items-center justify-center py-20 gap-4">
+                  <Loader2 className="animate-spin text-accent-main" size={24} />
+                  <p className="text-xs text-text-muted">Carregando...</p>
+                </div>
+              ) : filteredAndSortedEpisodes.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-20 text-center">
+                  <p className="text-sm text-text-muted">Nenhum episódio encontrado com o filtro selecionado.</p>
+                </div>
+              ) : (
+                <div className="divide-y divide-border-subtle">
+                  {filteredAndSortedEpisodes.slice(0, visibleCount).map((episode) => {
+                    const isPlayingThis = currentEpisode?.id === episode.id && isPlaying;
+                    const isDownloaded = downloads.some(d => d.id === episode.id);
+                    
+                    return (
+                      <div 
+                        key={episode.id} 
+                        className="py-5 flex gap-4 group border-b border-white/5 last:border-0 items-start"
+                      >
+                        {/* Capa do Episódio */}
+                        <div className="relative w-20 h-20 sm:w-24 sm:h-24 shrink-0 rounded-xl overflow-hidden bg-bg-surface border border-white/5 shadow-md">
+                          <img 
+                            src={episode.episodeArtwork || episode.podcastArtwork || podcast.artworkUrl600} 
+                            alt={episode.title} 
+                            loading="lazy"
+                            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                            referrerPolicy="no-referrer"
+                          />
+                          {isPlayingThis && (
+                            <div className="absolute inset-0 bg-accent-main/25 flex items-center justify-center backdrop-blur-[1px]">
+                              <div className="flex gap-1 items-end h-5">
+                                <div className="w-1 bg-accent-text animate-[music-bar_0.6s_ease-in-out_infinite]" />
+                                <div className="w-1 bg-accent-text animate-[music-bar_0.8s_ease-in-out_infinite]" />
+                                <div className="w-1 bg-accent-text animate-[music-bar_0.7s_ease-in-out_infinite]" />
+                              </div>
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-1.5 text-[11px] font-semibold text-text-muted mb-1.5 uppercase tracking-wide">
+                            {episode.pubDate && (
+                              <span>
+                                {(() => {
+                                  const date = new Date(episode.pubDate);
+                                  if (isNaN(date.getTime())) return '';
+                                  return format(date, "d 'de' MMM", { locale: ptBR });
+                                })()}
+                              </span>
+                            )}
+                            
+                            {episode.pubDate && episode.duration && <span>•</span>}
+
+                            {episode.duration && (
+                              <span>{formatDuration(episode.duration)}</span>
+                            )}
+                          </div>
+                          <h3 className={clsx(
+                            "font-semibold text-base leading-snug mb-2 line-clamp-2 transition-colors",
+                            currentEpisode?.id === episode.id ? "text-accent-main" : "text-text-main group-hover:text-accent-main"
+                          )}>
+                            {episode.title}
+                          </h3>
+                          <p className="text-xs text-text-muted line-clamp-2 mb-4 leading-relaxed">
+                            {episode.description}
+                          </p>
+                          
+                          <div className="flex items-center gap-4">
+                            <button 
+                              onClick={() => handlePlay(episode)}
+                              className={clsx(
+                                "flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all hover:scale-105 active:scale-95 shadow-md",
+                                isPlayingThis 
+                                  ? "bg-accent-main text-accent-text" 
+                                  : "bg-white/5 text-text-muted hover:bg-white/10 hover:text-text-main"
+                              )}
+                            >
+                              {isPlayingThis ? <Pause size={14} fill="currentColor" /> : <Play size={14} fill="currentColor" className="ml-0.5" />}
+                              {isPlayingThis ? 'Pausar' : 'Ouvir'}
+                            </button>
+
+                            <button 
+                              onClick={() => addToQueue(episode)}
+                              disabled={queue.some(q => q.id === episode.id)}
+                              className={clsx(
+                                "flex items-center justify-center w-10 h-10 rounded-xl transition-all hover:scale-110 active:scale-95 shadow-md",
+                                queue.some(q => q.id === episode.id)
+                                  ? "bg-accent-main/10 text-accent-main cursor-not-allowed"
+                                  : "bg-white/5 text-text-muted hover:bg-white/10 hover:text-text-main"
+                              )}
+                              title="Adicionar à fila"
+                            >
+                              <Plus size={16} />
+                            </button>
+       
+                            <div className="ml-auto">
+                              {downloadProgress[episode.id] !== undefined ? (
+                                <div className="text-[10px] font-black text-accent-main uppercase tracking-widest bg-accent-main/10 px-3 py-1.5 rounded-xl animate-pulse">
+                                  {downloadProgress[episode.id]}% Baixando
+                                </div>
+                              ) : (
+                                <button 
+                                  onClick={() => handleDownload(episode, isDownloaded)}
+                                  className={clsx(
+                                    "w-10 h-10 rounded-xl flex items-center justify-center transition-all hover:scale-110 active:scale-95",
+                                    isDownloaded 
+                                      ? "text-accent-main bg-accent-main/10" 
+                                      : "text-text-muted bg-white/5 hover:text-text-main hover:bg-white/10"
+                                  )}
+                                >
+                                  {isDownloaded ? <Check size={16} /> : <Download size={16} />}
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                  
+                  {visibleCount < filteredAndSortedEpisodes.length && (
+                    <div className="flex justify-center py-8">
+                      <button
+                        onClick={() => setVisibleCount(prev => prev + 50)}
+                        className="px-6 py-2 rounded-full border border-border-subtle text-text-muted text-xs font-semibold"
+                      >
+                        Ver mais
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+            </>
+          );
+        })()}
       </div>
     </div>
   );

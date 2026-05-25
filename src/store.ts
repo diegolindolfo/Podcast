@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { Episode, Podcast, DownloadedEpisode } from './types';
-import { get, set, del } from 'idb-keyval';
+import { get, set } from 'idb-keyval';
 
 interface PlayerState {
   currentEpisode: Episode | null;
@@ -13,6 +13,7 @@ interface PlayerState {
   listenedPodcasts: Podcast[];
   downloads: DownloadedEpisode[];
   history: Episode[];
+  queue: Episode[];
   savedProgress: Record<string, number>;
   sleepTimer: number | null; // minutes remaining or timestamp
   theme: string;
@@ -21,6 +22,8 @@ interface PlayerState {
   settings: {
     autoDownload: boolean;
     autoDelete: boolean;
+    skipForward: number;
+    skipBackward: number;
   };
   finishedAt: Record<string, number>;
   
@@ -51,6 +54,13 @@ interface PlayerState {
   clearHistory: () => Promise<void>;
   loadHistory: () => Promise<void>;
 
+  addToQueue: (episode: Episode) => Promise<void>;
+  removeFromQueue: (episodeId: string) => Promise<void>;
+  clearQueue: () => Promise<void>;
+  playNext: () => Promise<void>;
+  reorderQueue: (startIndex: number, endIndex: number) => Promise<void>;
+  loadQueue: () => Promise<void>;
+
   saveEpisodeProgress: (episodeId: string, progress: number) => Promise<void>;
   loadSavedProgress: () => Promise<void>;
 
@@ -75,6 +85,7 @@ export const useStore = create<PlayerState>((setStore, getStore) => ({
   listenedPodcasts: [],
   downloads: [],
   history: [],
+  queue: [],
   savedProgress: {},
   sleepTimer: null,
   theme: 'default',
@@ -83,6 +94,8 @@ export const useStore = create<PlayerState>((setStore, getStore) => ({
   settings: {
     autoDownload: false,
     autoDelete: false,
+    skipForward: 30,
+    skipBackward: 15
   },
   finishedAt: {},
 
@@ -187,6 +200,51 @@ export const useStore = create<PlayerState>((setStore, getStore) => ({
     setStore({ history });
   },
 
+  addToQueue: async (episode) => {
+    const queue = [...getStore().queue, episode];
+    await set('queue', queue);
+    setStore({ queue });
+  },
+
+  removeFromQueue: async (episodeId) => {
+    const queue = getStore().queue.filter(ep => ep.id !== episodeId);
+    await set('queue', queue);
+    setStore({ queue });
+  },
+
+  clearQueue: async () => {
+    await set('queue', []);
+    setStore({ queue: [] });
+  },
+
+  playNext: async () => {
+    const { queue, setCurrentEpisode, setIsPlaying } = getStore();
+    if (queue.length > 0) {
+      const nextEpisode = queue[0];
+      const remainingQueue = queue.slice(1);
+      await set('queue', remainingQueue);
+      setStore({ queue: remainingQueue });
+      await setCurrentEpisode(nextEpisode);
+      setIsPlaying(true);
+    } else {
+      await setCurrentEpisode(null);
+      setIsPlaying(false);
+    }
+  },
+
+  reorderQueue: async (startIndex, endIndex) => {
+    const queue = [...getStore().queue];
+    const [removed] = queue.splice(startIndex, 1);
+    queue.splice(endIndex, 0, removed);
+    await set('queue', queue);
+    setStore({ queue });
+  },
+
+  loadQueue: async () => {
+    const queue = await get<Episode[]>('queue') || [];
+    setStore({ queue });
+  },
+
   saveEpisodeProgress: async (episodeId, progress) => {
     const currentProgress = getStore().savedProgress;
     const updated = { ...currentProgress, [episodeId]: progress };
@@ -232,7 +290,14 @@ export const useStore = create<PlayerState>((setStore, getStore) => ({
   },
 
   loadSettings: async () => {
-    const settings = await get<PlayerState['settings']>('settings') || { autoDownload: false, autoDelete: false };
+    const settings = await get<PlayerState['settings']>('settings') || {
+      autoDownload: false,
+      autoDelete: false,
+      skipForward: 30,
+      skipBackward: 15
+    };
+    if (settings.skipForward === undefined) settings.skipForward = 30;
+    if (settings.skipBackward === undefined) settings.skipBackward = 15;
     setStore({ settings });
   },
 

@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Play, Pause, SkipBack, SkipForward, ChevronDown, Clock, FastForward } from 'lucide-react';
+import { Play, Pause, SkipBack, SkipForward, ChevronDown, Clock, FastForward, ListMusic, Trash2 } from 'lucide-react';
 import { useStore } from '../store';
 import { getCachedAudioUrl } from '../services/downloader';
 import { clsx } from 'clsx';
@@ -21,7 +21,12 @@ export function Player() {
     saveEpisodeProgress,
     sleepTimer,
     setSleepTimer,
-    addToHistory
+    addToHistory,
+    queue,
+    removeFromQueue,
+    clearQueue,
+    playNext,
+    settings
   } = useStore();
   
   const audioRef = useRef<HTMLAudioElement>(null);
@@ -29,6 +34,7 @@ export function Player() {
   const [audioSrc, setAudioSrc] = useState<string | null>(null);
   const [showSpeedMenu, setShowSpeedMenu] = useState(false);
   const [showTimerMenu, setShowTimerMenu] = useState(false);
+  const [showQueue, setShowQueue] = useState(false);
   const lastSavedTime = useRef<number>(0);
   const hasRestoredProgress = useRef<boolean>(false);
 
@@ -56,12 +62,15 @@ export function Player() {
         }
       };
 
+      const skipBackwardVal = settings.skipBackward || 15;
+      const skipForwardVal = settings.skipForward || 30;
+
       navigator.mediaSession.setActionHandler('play', () => setIsPlaying(true));
       navigator.mediaSession.setActionHandler('pause', () => setIsPlaying(false));
-      navigator.mediaSession.setActionHandler('seekbackward', (details) => skipTime(-(details.seekOffset || 15)));
-      navigator.mediaSession.setActionHandler('seekforward', (details) => skipTime(details.seekOffset || 30));
-      navigator.mediaSession.setActionHandler('previoustrack', () => skipTime(-15));
-      navigator.mediaSession.setActionHandler('nexttrack', () => skipTime(30));
+      navigator.mediaSession.setActionHandler('seekbackward', (details) => skipTime(-(details.seekOffset || skipBackwardVal)));
+      navigator.mediaSession.setActionHandler('seekforward', (details) => skipTime(details.seekOffset || skipForwardVal));
+      navigator.mediaSession.setActionHandler('previoustrack', () => skipTime(-skipBackwardVal));
+      navigator.mediaSession.setActionHandler('nexttrack', () => skipTime(skipForwardVal));
 
       try {
         navigator.mediaSession.setActionHandler('seekto', (details) => {
@@ -74,7 +83,7 @@ export function Player() {
         console.warn('MediaSession seekto not supported');
       }
     }
-  }, [currentEpisode, setIsPlaying]);
+  }, [currentEpisode, setIsPlaying, settings.skipBackward, settings.skipForward]);
 
   const updatePositionState = () => {
     if ('mediaSession' in navigator && 'setPositionState' in navigator.mediaSession && audioRef.current) {
@@ -93,19 +102,40 @@ export function Player() {
     }
   };
 
-  // Sleep timer logic
+  // Sleep timer logic with volume fade-out
   useEffect(() => {
-    if (!sleepTimer || !isPlaying) return;
+    if (!sleepTimer || !isPlaying) {
+      if (audioRef.current) {
+        audioRef.current.volume = volume;
+      }
+      return;
+    }
 
     const interval = setInterval(() => {
-      if (Date.now() >= sleepTimer) {
+      const now = Date.now();
+      if (now >= sleepTimer) {
         setIsPlaying(false);
         setSleepTimer(null);
+        if (audioRef.current) {
+          audioRef.current.volume = volume;
+        }
+      } else if (now >= sleepTimer - 30000 && audioRef.current) {
+        // Fade out volume in the last 30 seconds
+        const remaining = sleepTimer - now;
+        const ratio = Math.max(0, remaining / 30000);
+        audioRef.current.volume = volume * ratio;
+      } else if (audioRef.current) {
+        audioRef.current.volume = volume;
       }
-    }, 1000);
+    }, 200);
 
-    return () => clearInterval(interval);
-  }, [sleepTimer, isPlaying, setIsPlaying, setSleepTimer]);
+    return () => {
+      clearInterval(interval);
+      if (audioRef.current) {
+        audioRef.current.volume = volume;
+      }
+    };
+  }, [sleepTimer, isPlaying, volume, setIsPlaying, setSleepTimer]);
 
   useEffect(() => {
     if (!currentEpisode) return;
@@ -231,12 +261,13 @@ export function Player() {
         preload="metadata"
         onTimeUpdate={handleTimeUpdate}
         onLoadedMetadata={handleLoadedMetadata}
-        onEnded={() => {
+        onEnded={async () => {
           setIsPlaying(false);
           if (currentEpisode) {
-            saveEpisodeProgress(currentEpisode.id, 0);
-            useStore.getState().markEpisodeFinished(currentEpisode.id);
+            await saveEpisodeProgress(currentEpisode.id, 0);
+            await useStore.getState().markEpisodeFinished(currentEpisode.id);
           }
+          await playNext();
         }}
       />
 
@@ -347,7 +378,7 @@ export function Player() {
                 </div>
 
                 <div className="flex items-center justify-center space-x-8 w-full mb-12">
-                  <button onClick={() => skip(-15)} className="w-14 h-14 rounded-full bg-white/5 flex items-center justify-center text-text-muted hover:text-text-main transition-all hover:scale-110 active:scale-90">
+                  <button onClick={() => skip(-(settings.skipBackward || 15))} className="w-14 h-14 rounded-full bg-white/5 flex items-center justify-center text-text-muted hover:text-text-main transition-all hover:scale-110 active:scale-90">
                     <SkipBack size={24} fill="currentColor" />
                   </button>
                   <button 
@@ -356,7 +387,7 @@ export function Player() {
                   >
                     {isPlaying ? <Pause size={30} fill="currentColor" /> : <Play size={30} fill="currentColor" className="ml-1" />}
                   </button>
-                  <button onClick={() => skip(30)} className="w-14 h-14 rounded-full bg-white/5 flex items-center justify-center text-text-muted hover:text-text-main transition-all hover:scale-110 active:scale-90">
+                  <button onClick={() => skip(settings.skipForward || 30)} className="w-14 h-14 rounded-full bg-white/5 flex items-center justify-center text-text-muted hover:text-text-main transition-all hover:scale-110 active:scale-90">
                     <SkipForward size={24} fill="currentColor" />
                   </button>
                 </div>
@@ -389,6 +420,19 @@ export function Player() {
                         ))}
                       </div>
                     )}
+                  </div>
+
+                  <div className="relative">
+                    <button 
+                      onClick={() => { setShowQueue(!showQueue); setShowSpeedMenu(false); setShowTimerMenu(false); }}
+                      className={clsx(
+                        "flex items-center gap-2 px-5 py-3 rounded-full text-[10px] font-black uppercase tracking-widest transition-all shadow-lg",
+                        queue.length > 0 ? "bg-accent-main text-accent-text" : "bg-white/5 text-text-muted hover:text-text-main"
+                      )}
+                    >
+                      <ListMusic size={14} />
+                      Fila {queue.length > 0 && `(${queue.length})`}
+                    </button>
                   </div>
 
                   <div className="relative">
@@ -426,6 +470,69 @@ export function Player() {
                     )}
                   </div>
                 </div>
+
+                {/* Queue Overlay Drawer */}
+                <AnimatePresence>
+                  {showQueue && (
+                    <motion.div
+                      initial={{ y: '100%' }}
+                      animate={{ y: 0 }}
+                      exit={{ y: '100%' }}
+                      transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+                      className="absolute inset-x-0 bottom-0 top-20 bg-bg-surface/95 backdrop-blur-2xl rounded-t-3xl border-t border-white/10 z-30 flex flex-col p-6 shadow-[0_-20px_50px_rgba(0,0,0,0.5)]"
+                    >
+                      <div className="flex justify-between items-center mb-6">
+                        <h3 className="text-lg font-bold text-text-main">Fila de Reprodução ({queue.length})</h3>
+                        <div className="flex gap-4">
+                          {queue.length > 0 && (
+                            <button 
+                              onClick={() => clearQueue()}
+                              className="text-xs font-bold text-red-500 hover:text-red-400 uppercase tracking-widest"
+                            >
+                              Limpar
+                            </button>
+                          )}
+                          <button 
+                            onClick={() => setShowQueue(false)} 
+                            className="text-xs font-bold text-text-muted hover:text-text-main uppercase tracking-widest"
+                          >
+                            Fechar
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="flex-1 overflow-y-auto space-y-4 pr-1 scrollbar-thin">
+                        {queue.length === 0 ? (
+                          <div className="flex flex-col items-center justify-center h-full text-text-muted text-sm gap-2">
+                            <ListMusic size={32} className="opacity-40" />
+                            <p className="font-semibold uppercase tracking-wider text-[10px]">A fila está vazia</p>
+                          </div>
+                        ) : (
+                          queue.map((ep, idx) => (
+                            <div key={ep.id + '-' + idx} className="flex items-center gap-3 bg-white/5 p-3 rounded-xl border border-white/5 group">
+                              <img 
+                                src={ep.episodeArtwork || ep.podcastArtwork} 
+                                alt={ep.title} 
+                                className="w-10 h-10 rounded-lg object-cover"
+                                referrerPolicy="no-referrer"
+                              />
+                              <div className="flex-1 min-w-0">
+                                <h4 className="text-xs font-semibold text-text-main truncate">{ep.title}</h4>
+                                <p className="text-[10px] text-text-muted truncate mt-0.5 uppercase tracking-wider font-bold">{ep.podcastName}</p>
+                              </div>
+                              <button 
+                                onClick={() => removeFromQueue(ep.id)}
+                                className="text-text-muted hover:text-red-500 p-2 transition-colors opacity-80 group-hover:opacity-100"
+                              >
+                                <Trash2 size={16} />
+                              </button>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
             </motion.div>
           )}

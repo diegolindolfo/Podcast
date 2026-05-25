@@ -1,6 +1,5 @@
 import { useStore } from '../store';
 import { 
-  Database, 
   Info, 
   Trash2, 
   Bell, 
@@ -14,11 +13,11 @@ import {
   AlertCircle,
   User,
   LogOut,
-  LogIn
+  LogIn,
+  SkipBack,
+  SkipForward
 } from 'lucide-react';
 import { 
-  HomeIcon, 
-  DiscoverIcon, 
   DownloadsIcon, 
   HistoryIcon, 
   SettingsIcon as CustomSettingsIcon 
@@ -412,6 +411,41 @@ export function Settings() {
               enabled={settings.autoDelete} 
               onToggle={() => updateSettings({ autoDelete: !settings.autoDelete })} 
             />
+          </SettingItem>
+        </Section>
+
+        {/* Playback Section */}
+        <Section title="Reprodução">
+          <SettingItem 
+            icon={<SkipBack size={20} />}
+            title="Retroceder"
+            subtitle="Tempo ao voltar o áudio"
+          >
+            <select
+              value={settings.skipBackward || 15}
+              onChange={(e) => updateSettings({ skipBackward: Number(e.target.value) })}
+              className="bg-bg-surface-hover text-text-main text-xs font-semibold rounded-lg p-2 border border-border-subtle focus:outline-none"
+            >
+              {[10, 15, 30, 45, 60].map(s => (
+                <option key={s} value={s}>{s}s</option>
+              ))}
+            </select>
+          </SettingItem>
+          <Divider />
+          <SettingItem 
+            icon={<SkipForward size={20} />}
+            title="Avançar"
+            subtitle="Tempo ao avançar o áudio"
+          >
+            <select
+              value={settings.skipForward || 30}
+              onChange={(e) => updateSettings({ skipForward: Number(e.target.value) })}
+              className="bg-bg-surface-hover text-text-main text-xs font-semibold rounded-lg p-2 border border-border-subtle focus:outline-none"
+            >
+              {[10, 15, 30, 45, 60].map(s => (
+                <option key={s} value={s}>{s}s</option>
+              ))}
+            </select>
           </SettingItem>
         </Section>
 

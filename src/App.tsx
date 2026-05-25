@@ -36,6 +36,7 @@ export default function App() {
     loadPodcastTimestamps, 
     loadCurrentEpisode, 
     loadHistory, 
+    loadQueue,
     loadSettings,
     loadFinishedAt,
     loadTheme,
@@ -54,6 +55,7 @@ export default function App() {
     loadPodcastTimestamps();
     loadCurrentEpisode();
     loadHistory();
+    loadQueue();
     loadSettings();
     loadFinishedAt();
     loadTheme();

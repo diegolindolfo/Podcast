@@ -60,20 +60,29 @@ export async function downloadEpisode(
     if (total > 0 && onProgress && response.body) {
       const reader = response.body.getReader();
       let loaded = 0;
-      const chunks: Uint8Array[] = [];
 
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        if (value) {
-          chunks.push(value);
-          loaded += value.length;
-          onProgress(Math.round((loaded / total) * 100));
+      const stream = new ReadableStream({
+        async start(controller) {
+          try {
+            while (true) {
+              const { done, value } = await reader.read();
+              if (done) {
+                controller.close();
+                break;
+              }
+              if (value) {
+                loaded += value.length;
+                onProgress(Math.round((loaded / total) * 100));
+                controller.enqueue(value);
+              }
+            }
+          } catch (err) {
+            controller.error(err);
+          }
         }
-      }
+      });
 
-      const blob = new Blob(chunks, { type: response.headers.get('content-type') || 'audio/mpeg' });
-      const newResponse = new Response(blob, {
+      const newResponse = new Response(stream, {
         headers: response.headers,
         status: response.status,
         statusText: response.statusText

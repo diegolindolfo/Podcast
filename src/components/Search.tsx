@@ -3,7 +3,7 @@ import { Search as SearchIcon, Loader2, ChevronLeft } from 'lucide-react';
 import { Podcast } from '../types';
 import { searchPodcasts, getTopPodcasts } from '../services/api';
 import { clsx } from 'clsx';
-import { useStore } from '../store';
+
 
 interface SearchProps {
   onSelectPodcast: (podcast: Podcast) => void;
@@ -21,14 +21,14 @@ const CATEGORIES = [
   { id: '1512', name: 'Saúde', icon: '💪', color: 'bg-accent-main/20 border-accent-main/20' },
 ];
 
-import { motion } from 'motion/react';
+
 
 export function Search({ onSelectPodcast }: SearchProps) {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<Podcast[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<{id: string, name: string} | null>(null);
-  const { subscriptions } = useStore();
+
 
   useEffect(() => {
     const delayDebounceFn = setTimeout(async () => {
