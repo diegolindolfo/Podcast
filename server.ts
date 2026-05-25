@@ -5,21 +5,10 @@ import rateLimit from 'express-rate-limit';
 import Parser from 'rss-parser';
 import { createServer as createViteServer } from 'vite';
 import webpush from 'web-push';
-import cron from 'node-cron';
-import fs from 'fs';
 import path from 'path';
-import { initializeApp } from 'firebase/app';
-import { getFirestore, collection, getDocs } from 'firebase/firestore';
-import { getAuth, signInAnonymously } from 'firebase/auth';
 import Database from 'better-sqlite3';
 
-// Read Firebase config
-const firebaseConfig = JSON.parse(fs.readFileSync(path.resolve(process.cwd(), 'firebase-applet-config.json'), 'utf-8'));
 
-// Initialize Firebase Client SDK for the backend
-const firebaseApp = initializeApp(firebaseConfig);
-const db = getFirestore(firebaseApp, firebaseConfig.firestoreDatabaseId);
-const auth = getAuth(firebaseApp);
 
 // VAPID keys for Web Push
 const vapidKeys = {
@@ -70,62 +59,6 @@ function setCache(key: string, data: any, ttlMs: number): void {
     cacheDb.prepare('INSERT OR REPLACE INTO api_cache (key, data, expires_at) VALUES (?, ?, ?)').run(key, JSON.stringify(data), expiresAt);
   } catch (error) {
     console.error('SQLite cache write error:', error);
-  }
-}
-
-const latestEpisodesCache: Record<string, string> = {};
-
-async function checkFeedsAndNotify(parser: Parser) {
-  console.log('Checking RSS feeds for new episodes...');
-  try {
-    const snapshot = await getDocs(collection(db, 'pushSubscriptions'));
-    const subscriptions: any[] = [];
-    snapshot.forEach(doc => subscriptions.push({ id: doc.id, ...doc.data() }));
-
-    if (subscriptions.length === 0) return;
-
-    const podcastUrls = new Set<string>();
-    subscriptions.forEach(sub => {
-      if (sub.podcasts && Array.isArray(sub.podcasts)) {
-        sub.podcasts.forEach((url: string) => podcastUrls.add(url));
-      }
-    });
-
-    for (const url of podcastUrls) {
-      try {
-        const feed = await parser.parseURL(url);
-        if (feed.items && feed.items.length > 0) {
-          const latestEpisode = feed.items[0];
-          const episodeId = latestEpisode.guid || latestEpisode.link || latestEpisode.title;
-          
-          if (!episodeId) continue;
-
-          if (latestEpisodesCache[url] && latestEpisodesCache[url] !== episodeId) {
-            console.log(`New episode found for ${feed.title}: ${latestEpisode.title}`);
-            const payload = JSON.stringify({
-              title: feed.title || 'Novo Episódio!',
-              body: latestEpisode.title || 'Confira o novo episódio.',
-              icon: '/icon.svg',
-              url: '/'
-            });
-
-            const subscribers = subscriptions.filter(sub => sub.podcasts.includes(url));
-            for (const sub of subscribers) {
-              try {
-                await webpush.sendNotification({ endpoint: sub.endpoint, keys: sub.keys }, payload);
-              } catch (err) {
-                console.error(`Failed to send notification to ${sub.endpoint}:`, err);
-              }
-            }
-          }
-          latestEpisodesCache[url] = episodeId;
-        }
-      } catch (err) {
-        console.error(`Error parsing feed ${url}:`, err);
-      }
-    }
-  } catch (error) {
-    console.error('Error checking feeds:', error);
   }
 }
 
@@ -272,18 +205,8 @@ async function startServer() {
     });
   }
 
-  // Authenticate backend anonymously
-  signInAnonymously(auth).then(() => {
-    console.log('Backend authenticated with Firebase anonymously.');
-  }).catch(console.error);
-
-  // Schedule cron job
-  cron.schedule('*/15 * * * *', () => checkFeedsAndNotify(parser));
-
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`Server running on http://localhost:${PORT}`);
-    // Initial check after 10 seconds
-    setTimeout(() => checkFeedsAndNotify(parser), 10000);
   });
 }
 

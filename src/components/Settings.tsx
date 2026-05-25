@@ -11,9 +11,6 @@ import {
   Image as ImageIcon,
   RotateCcw,
   AlertCircle,
-  User,
-  LogOut,
-  LogIn,
   SkipBack,
   SkipForward
 } from 'lucide-react';
@@ -26,9 +23,6 @@ import { deleteDownloadedEpisode } from '../services/downloader';
 import { useState, useEffect, ReactNode } from 'react';
 import { clsx } from 'clsx';
 import { motion, AnimatePresence } from 'motion/react';
-import { db, auth, googleProvider, signInWithPopup } from '../firebase';
-import { doc, setDoc } from 'firebase/firestore';
-import { onAuthStateChanged, User as FirebaseUser, signOut } from 'firebase/auth';
 
 function urlBase64ToUint8Array(base64String: string) {
   const padding = '='.repeat((4 - base64String.length % 4) % 4);
@@ -115,17 +109,9 @@ export function Settings() {
     setTheme
   } = useStore();
   
-  const [user, setUser] = useState<FirebaseUser | null>(null);
   const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>('default');
-  const [confirming, setConfirming] = useState<'downloads' | 'subscriptions' | 'history' | 'images' | 'reset' | 'logout' | null>(null);
+  const [confirming, setConfirming] = useState<'downloads' | 'subscriptions' | 'history' | 'images' | 'reset' | null>(null);
   const [message, setMessage] = useState<{ text: string, type: 'success' | 'error' } | null>(null);
-
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (u) => {
-      setUser(u);
-    });
-    return () => unsubscribe();
-  }, []);
 
   useEffect(() => {
     if ('Notification' in window) {
@@ -186,27 +172,6 @@ export function Settings() {
     }
   };
 
-  const handleLogin = async () => {
-    try {
-      await signInWithPopup(auth, googleProvider);
-      showMessage('Login realizado com sucesso!');
-    } catch (error) {
-      console.error('Login error:', error);
-      showMessage('Erro ao realizar login', 'error');
-    }
-  };
-
-  const handleLogout = async () => {
-    try {
-      await signOut(auth);
-      setConfirming(null);
-      showMessage('Sessão encerrada');
-    } catch (error) {
-      console.error('Logout error:', error);
-      showMessage('Erro ao encerrar sessão', 'error');
-    }
-  };
-
   const requestNotificationPermission = async () => {
     if (!('Notification' in window) || !('serviceWorker' in navigator)) {
       showMessage('Este navegador não suporta notificações Push.', 'error');
@@ -223,25 +188,16 @@ export function Settings() {
         const { publicKey } = await response.json();
         const applicationServerKey = urlBase64ToUint8Array(publicKey);
 
-        const subscription = await reg.pushManager.subscribe({
+        await reg.pushManager.subscribe({
           userVisibleOnly: true,
           applicationServerKey
         });
 
-        const subData = JSON.parse(JSON.stringify(subscription));
-        const podcastUrls = subscriptions.map(p => p.feedUrl);
-        
         let subId = localStorage.getItem('pushSubId');
         if (!subId) {
           subId = crypto.randomUUID();
           localStorage.setItem('pushSubId', subId);
         }
-
-        await setDoc(doc(db, 'pushSubscriptions', subId), {
-          endpoint: subData.endpoint,
-          keys: subData.keys,
-          podcasts: podcastUrls
-        });
 
         showMessage('Notificações Push ativadas com sucesso!');
       }
@@ -316,44 +272,6 @@ export function Settings() {
       </AnimatePresence>
 
       <div className="space-y-6 max-w-2xl mx-auto">
-        {/* Account Section */}
-        <Section title="Conta">
-          <div className="p-4 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-full bg-accent-main/10 flex items-center justify-center text-accent-main overflow-hidden border border-border-subtle">
-                {user?.photoURL ? (
-                  <img src={user.photoURL} alt={user.displayName || ''} className="w-full h-full object-cover" />
-                ) : (
-                  <User size={24} />
-                )}
-              </div>
-              <div>
-                <span className="font-bold block text-text-main text-sm">
-                  {user?.isAnonymous ? 'Visitante' : (user?.displayName || 'Usuário')}
-                </span>
-                <span className="text-xs text-text-muted">
-                  {user?.isAnonymous ? 'Sincronização limitada' : (user?.email || 'Sincronização ativa')}
-                </span>
-              </div>
-            </div>
-            {user?.isAnonymous ? (
-              <button 
-                onClick={handleLogin}
-                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-accent-main text-accent-text text-xs font-bold shadow-lg hover:scale-105 transition-transform"
-              >
-                <LogIn size={14} />
-                ENTRAR
-              </button>
-            ) : (
-              <button 
-                onClick={() => setConfirming('logout')}
-                className="p-2 text-text-muted hover:text-red-500 transition-colors"
-              >
-                <LogOut size={20} />
-              </button>
-            )}
-          </div>
-        </Section>
 
         {/* Appearance Section */}
         <Section title="Aparência">
@@ -614,7 +532,6 @@ export function Settings() {
                   {confirming === 'history' && 'Seu histórico de reprodução será limpo.'}
                   {confirming === 'images' && 'O cache de imagens será limpo.'}
                   {confirming === 'reset' && 'Isso apagará TODOS os dados do aplicativo.'}
-                  {confirming === 'logout' && 'Você sairá da sua conta Google.'}
                 </p>
                 <div className="grid grid-cols-2 gap-3 w-full">
                   <button 
@@ -630,7 +547,6 @@ export function Settings() {
                       if (confirming === 'history') await handleClearHistory();
                       if (confirming === 'images') await handleClearImageCache();
                       if (confirming === 'reset') await handleResetAll();
-                      if (confirming === 'logout') await handleLogout();
                     }}
                     className="py-2.5 px-4 rounded-xl bg-red-500 text-white font-semibold text-sm"
                   >

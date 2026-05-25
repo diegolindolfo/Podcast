@@ -5,8 +5,6 @@ import { Player } from './components/Player';
 import { useStore } from './store';
 import { Podcast } from './types';
 import { deleteDownloadedEpisode } from './services/downloader';
-import { db } from './firebase';
-import { doc, updateDoc } from 'firebase/firestore';
 
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -150,18 +148,7 @@ export default function App() {
     return () => clearInterval(interval);
   }, [settings.autoDownload, subscriptions]);
 
-  // Sync push subscriptions to Firestore
-  useEffect(() => {
-    const subId = localStorage.getItem('pushSubId');
-    if (subId) {
-      const podcastUrls = subscriptions.map(p => p.feedUrl);
-      updateDoc(doc(db, 'pushSubscriptions', subId), {
-        podcasts: podcastUrls
-      }).catch(err => {
-        console.error('Failed to sync push subscriptions:', err);
-      });
-    }
-  }, [subscriptions]);
+
 
   useEffect(() => {
     if (theme === 'default') {
