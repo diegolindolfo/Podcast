@@ -16,7 +16,7 @@ export default defineConfig(({mode}) => {
           importScripts: ['/custom-sw.js'],
           runtimeCaching: [
             {
-              urlPattern: ({ url }) => url.pathname.startsWith('/api/'),
+              urlPattern: ({ url }) => url.pathname.startsWith('/api/') && !url.pathname.startsWith('/api/proxy'),
               handler: 'NetworkFirst',
               options: {
                 cacheName: 'api-cache',
@@ -77,8 +77,7 @@ export default defineConfig(({mode}) => {
       rollupOptions: {
         output: {
           manualChunks: {
-            vendor: ['react', 'react-dom', 'zustand', 'motion/react', 'lucide-react'],
-            firebase: ['firebase/app', 'firebase/firestore', 'firebase/auth']
+            vendor: ['react', 'react-dom', 'zustand', 'motion/react', 'lucide-react']
           }
         }
       }

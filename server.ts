@@ -66,6 +66,9 @@ async function startServer() {
   const app = express();
   const PORT = 3000;
 
+  // Trust proxy for external Cloud Run reverse proxy layers
+  app.set('trust proxy', true);
+
   app.use(cors());
   app.use(compression());
 
