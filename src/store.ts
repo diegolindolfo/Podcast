@@ -2,6 +2,16 @@ import { create } from 'zustand';
 import { Episode, Podcast, DownloadedEpisode } from './types';
 import { get, set } from 'idb-keyval';
 
+const MAX_SAVED_PROGRESS = 300;
+const MAX_FINISHED_AT = 500;
+
+/** Keeps only the last `max` entries of a record (by insertion/update order). */
+function trimRecord<T>(rec: Record<string, T>, max: number): Record<string, T> {
+  const entries = Object.entries(rec);
+  if (entries.length <= max) return rec;
+  return Object.fromEntries(entries.slice(entries.length - max));
+}
+
 interface PlayerState {
   currentEpisode: Episode | null;
   isPlaying: boolean;
@@ -119,7 +129,9 @@ export const useStore = create<PlayerState>((setStore, getStore) => ({
   },
 
   subscribe: async (podcast) => {
-    const subs = [...getStore().subscriptions, podcast];
+    const existing = getStore().subscriptions;
+    if (existing.some(p => p.collectionId === podcast.collectionId)) return;
+    const subs = [...existing, podcast];
     await set('subscriptions', subs);
     setStore({ subscriptions: subs });
     
@@ -161,7 +173,8 @@ export const useStore = create<PlayerState>((setStore, getStore) => ({
   },
 
   addDownload: async (episode) => {
-    const dls = [...getStore().downloads, episode];
+    const filtered = getStore().downloads.filter(d => d.id !== episode.id);
+    const dls = [...filtered, episode];
     await set('downloads', dls);
     setStore({ downloads: dls });
   },
@@ -246,8 +259,10 @@ export const useStore = create<PlayerState>((setStore, getStore) => ({
   },
 
   saveEpisodeProgress: async (episodeId, progress) => {
-    const currentProgress = getStore().savedProgress;
-    const updated = { ...currentProgress, [episodeId]: progress };
+    const { [episodeId]: _removed, ...rest } = getStore().savedProgress;
+    const updated = progress > 0
+      ? trimRecord({ ...rest, [episodeId]: progress }, MAX_SAVED_PROGRESS)
+      : rest;
     await set('savedProgress', updated);
     setStore({ savedProgress: updated });
   },
@@ -302,8 +317,8 @@ export const useStore = create<PlayerState>((setStore, getStore) => ({
   },
 
   markEpisodeFinished: async (episodeId) => {
-    const current = getStore().finishedAt;
-    const updated = { ...current, [episodeId]: Date.now() };
+    const { [episodeId]: _removed, ...rest } = getStore().finishedAt;
+    const updated = trimRecord({ ...rest, [episodeId]: Date.now() }, MAX_FINISHED_AT);
     await set('finishedAt', updated);
     setStore({ finishedAt: updated });
   },

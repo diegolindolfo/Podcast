@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
 import { useStore } from '../store';
+import { useShallow } from 'zustand/react/shallow';
 import { Podcast, Episode } from '../types';
 import { getPodcastFeed } from '../services/api';
 import { Play } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { formatDuration } from '../utils';
+import { formatDuration, parseRssEpisode } from '../utils';
 import { motion } from 'motion/react';
 
 interface HomeProps {
@@ -24,7 +25,18 @@ export function Home({ onSelectPodcast }: HomeProps) {
     history,
     savedProgress,
     finishedAt
-  } = useStore();
+  } = useStore(useShallow((s) => ({
+    subscriptions: s.subscriptions,
+    podcastLastViewed: s.podcastLastViewed,
+    podcastLatestEpisode: s.podcastLatestEpisode,
+    setCurrentEpisode: s.setCurrentEpisode,
+    setIsPlaying: s.setIsPlaying,
+    currentEpisode: s.currentEpisode,
+    isPlaying: s.isPlaying,
+    history: s.history,
+    savedProgress: s.savedProgress,
+    finishedAt: s.finishedAt,
+  })));
 
   const [latestEpisodes, setLatestEpisodes] = useState<Episode[]>([]);
 
@@ -62,28 +74,7 @@ export function Home({ onSelectPodcast }: HomeProps) {
             const feed = await getPodcastFeed(pod.feedUrl);
             if (feed && feed.items && feed.items.length > 0) {
               const item = feed.items[0];
-              
-              let episodeArtwork = pod.artworkUrl600;
-              if (item['itunes:image'] && typeof item['itunes:image'] === 'object' && item['itunes:image'].$) {
-                episodeArtwork = item['itunes:image'].$.href;
-              } else if (typeof item['itunes:image'] === 'string') {
-                episodeArtwork = item['itunes:image'];
-              } else if (item.itunes?.image) {
-                episodeArtwork = item.itunes.image;
-              }
-
-              return {
-                id: item.guid || item.link || item.title,
-                title: item.title,
-                pubDate: item.pubDate,
-                description: item.contentSnippet || item.content || item['itunes:summary'] || '',
-                audioUrl: item.enclosure?.url || '',
-                duration: item['itunes:duration'],
-                podcastId: pod.collectionId,
-                podcastName: pod.collectionName,
-                podcastArtwork: pod.artworkUrl600,
-                episodeArtwork
-              } as Episode;
+              return parseRssEpisode(item, pod);
             }
           } catch (e) {
             console.error("Failed to fetch feed for", pod.collectionName);

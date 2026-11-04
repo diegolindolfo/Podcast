@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useStore } from '../store';
+import { useShallow } from 'zustand/react/shallow';
 import { Play, Pause, Trash2, Check, X } from 'lucide-react';
 import { DownloadsIcon } from './CustomIcons';
 import { format } from 'date-fns';
@@ -10,7 +11,13 @@ import { deleteDownloadedEpisode } from '../services/downloader';
 import { motion, AnimatePresence } from 'motion/react';
 
 export function Downloads() {
-  const { downloads, currentEpisode, isPlaying, setIsPlaying, setCurrentEpisode } = useStore();
+  const { downloads, currentEpisode, isPlaying, setIsPlaying, setCurrentEpisode } = useStore(useShallow((s) => ({
+    downloads: s.downloads,
+    currentEpisode: s.currentEpisode,
+    isPlaying: s.isPlaying,
+    setIsPlaying: s.setIsPlaying,
+    setCurrentEpisode: s.setCurrentEpisode,
+  })));
   const [confirmingDelete, setConfirmingDelete] = useState<string | null>(null);
 
   const handlePlay = async (episode: any) => {

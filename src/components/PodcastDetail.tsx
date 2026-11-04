@@ -3,11 +3,12 @@ import { ChevronLeft, Play, Pause, Download, Check, Loader2, Plus } from 'lucide
 import { Podcast, Episode } from '../types';
 import { getPodcastFeed } from '../services/api';
 import { useStore } from '../store';
+import { useShallow } from 'zustand/react/shallow';
 import { downloadEpisode, deleteDownloadedEpisode } from '../services/downloader';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { clsx } from 'clsx';
-import { formatDuration } from '../utils';
+import { formatDuration, parseRssEpisode } from '../utils';
 
 interface PodcastDetailProps {
   podcast: Podcast;
@@ -38,7 +39,22 @@ export function PodcastDetail({ podcast, onBack }: PodcastDetailProps) {
     addToQueue,
     queue,
     finishedAt
-  } = useStore();
+  } = useStore(useShallow((s) => ({
+    currentEpisode: s.currentEpisode,
+    isPlaying: s.isPlaying,
+    setIsPlaying: s.setIsPlaying,
+    setCurrentEpisode: s.setCurrentEpisode,
+    subscriptions: s.subscriptions,
+    subscribe: s.subscribe,
+    unsubscribe: s.unsubscribe,
+    downloads: s.downloads,
+    addListenedPodcast: s.addListenedPodcast,
+    setPodcastLastViewed: s.setPodcastLastViewed,
+    setPodcastLatestEpisode: s.setPodcastLatestEpisode,
+    addToQueue: s.addToQueue,
+    queue: s.queue,
+    finishedAt: s.finishedAt,
+  })));
 
   const isSubscribed = subscriptions.some(p => p.collectionId === podcast.collectionId);
 
@@ -55,29 +71,9 @@ export function PodcastDetail({ podcast, onBack }: PodcastDetailProps) {
         
         setDescription(feed.description || '');
         
-        const eps: Episode[] = feed.items.map((item: any) => {
-          let episodeArtwork = podcast.artworkUrl600;
-          if (item['itunes:image'] && typeof item['itunes:image'] === 'object' && item['itunes:image'].$) {
-            episodeArtwork = item['itunes:image'].$.href;
-          } else if (typeof item['itunes:image'] === 'string') {
-            episodeArtwork = item['itunes:image'];
-          } else if (item.itunes?.image) {
-            episodeArtwork = item.itunes.image;
-          }
-          
-          return {
-            id: item.guid || item.link || item.title,
-            title: item.title,
-            pubDate: item.pubDate,
-            description: item.contentSnippet || item.content || item['itunes:summary'] || '',
-            audioUrl: item.enclosure?.url || '',
-            duration: item['itunes:duration'],
-            podcastId: podcast.collectionId,
-            podcastName: podcast.collectionName,
-            podcastArtwork: podcast.artworkUrl600,
-            episodeArtwork
-          };
-        }).filter((e: Episode) => e.audioUrl);
+        const eps: Episode[] = feed.items
+          .map((item: any) => parseRssEpisode(item, podcast))
+          .filter((e: Episode) => !!e.audioUrl);
         
         setEpisodes(eps);
 

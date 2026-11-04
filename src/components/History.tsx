@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useStore } from '../store';
+import { useShallow } from 'zustand/react/shallow';
 import { Play, Pause, Trash2, X, Check } from 'lucide-react';
 import { HistoryIcon } from './CustomIcons';
 import { clsx } from 'clsx';
@@ -7,7 +8,14 @@ import { clsx } from 'clsx';
 import { motion, AnimatePresence } from 'motion/react';
 
 export function History() {
-  const { history, currentEpisode, isPlaying, setIsPlaying, setCurrentEpisode, clearHistory } = useStore();
+  const { history, currentEpisode, isPlaying, setIsPlaying, setCurrentEpisode, clearHistory } = useStore(useShallow((s) => ({
+    history: s.history,
+    currentEpisode: s.currentEpisode,
+    isPlaying: s.isPlaying,
+    setIsPlaying: s.setIsPlaying,
+    setCurrentEpisode: s.setCurrentEpisode,
+    clearHistory: s.clearHistory,
+  })));
   const [showConfirm, setShowConfirm] = useState(false);
 
   const handlePlay = async (episode: any) => {

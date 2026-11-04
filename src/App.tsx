@@ -5,6 +5,7 @@ import { Player } from './components/Player';
 import { useStore } from './store';
 import { Podcast } from './types';
 import { deleteDownloadedEpisode } from './services/downloader';
+import { parseRssEpisode } from './utils';
 
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -14,7 +15,6 @@ const Downloads = lazy(() => import('./components/Downloads').then(m => ({ defau
 const History = lazy(() => import('./components/History').then(m => ({ default: m.History })));
 const Settings = lazy(() => import('./components/Settings').then(m => ({ default: m.Settings })));
 const PodcastDetail = lazy(() => import('./components/PodcastDetail').then(m => ({ default: m.PodcastDetail })));
-
 
 // Simple loading spinner for suspense fallback
 const LoadingFallback = () => (
@@ -26,37 +26,27 @@ const LoadingFallback = () => (
 export default function App() {
   const [currentTab, setCurrentTab] = useState('home');
   const [selectedPodcast, setSelectedPodcast] = useState<Podcast | null>(null);
-  const { 
-    loadSubscriptions, 
-    loadDownloads, 
-    loadSavedProgress, 
-    loadListenedPodcasts, 
-    loadPodcastTimestamps, 
-    loadCurrentEpisode, 
-    loadHistory, 
-    loadQueue,
-    loadSettings,
-    loadFinishedAt,
-    loadTheme,
-    theme,
-    settings,
-    finishedAt,
-    downloads,
-    subscriptions
-  } = useStore();
+
+  // Granular selectors to prevent unnecessary re-renders when playback progress ticks
+  const theme = useStore((state) => state.theme);
+  const settings = useStore((state) => state.settings);
+  const finishedAt = useStore((state) => state.finishedAt);
+  const downloads = useStore((state) => state.downloads);
+  const subscriptions = useStore((state) => state.subscriptions);
 
   useEffect(() => {
-    loadSubscriptions();
-    loadDownloads();
-    loadSavedProgress();
-    loadListenedPodcasts();
-    loadPodcastTimestamps();
-    loadCurrentEpisode();
-    loadHistory();
-    loadQueue();
-    loadSettings();
-    loadFinishedAt();
-    loadTheme();
+    const s = useStore.getState();
+    s.loadSubscriptions();
+    s.loadDownloads();
+    s.loadSavedProgress();
+    s.loadListenedPodcasts();
+    s.loadPodcastTimestamps();
+    s.loadCurrentEpisode();
+    s.loadHistory();
+    s.loadQueue();
+    s.loadSettings();
+    s.loadFinishedAt();
+    s.loadTheme();
   }, []);
 
   // Auto-delete logic
@@ -88,51 +78,25 @@ export default function App() {
 
   // Auto-download logic
   useEffect(() => {
-    if (!settings.autoDownload) return;
+    if (!settings.autoDownload || subscriptions.length === 0) return;
 
     const checkAndDownload = async () => {
-      const { subscriptions, downloads } = useStore.getState();
+      const { subscriptions: currentSubs, downloads: currentDls } = useStore.getState();
       const { getPodcastFeed } = await import('./services/api');
       const { downloadEpisode } = await import('./services/downloader');
 
-      for (const podcast of subscriptions) {
+      for (const podcast of currentSubs) {
         try {
           const feed = await getPodcastFeed(podcast.feedUrl);
           if (feed.items && feed.items.length > 0) {
             const latestItem = feed.items[0];
-            const episodeId = latestItem.guid || latestItem.link || latestItem.title;
+            const episode = parseRssEpisode(latestItem, podcast);
             
             // Check if already downloaded
-            const isDownloaded = downloads.some(d => d.id === episodeId);
-            if (!isDownloaded) {
-              console.log(`Auto-downloading new episode from ${podcast.collectionName}: ${latestItem.title}`);
-              
-              // Construct episode object
-              let episodeArtwork = podcast.artworkUrl600;
-              if (latestItem['itunes:image'] && typeof latestItem['itunes:image'] === 'object' && latestItem['itunes:image'].$) {
-                episodeArtwork = latestItem['itunes:image'].$.href;
-              } else if (typeof latestItem['itunes:image'] === 'string') {
-                episodeArtwork = latestItem['itunes:image'];
-              } else if (latestItem.itunes?.image) {
-                episodeArtwork = latestItem.itunes.image;
-              }
-
-              const episode = {
-                id: episodeId,
-                title: latestItem.title,
-                pubDate: latestItem.pubDate,
-                description: latestItem.contentSnippet || latestItem.content || latestItem['itunes:summary'] || '',
-                audioUrl: latestItem.enclosure?.url || '',
-                duration: latestItem['itunes:duration'],
-                podcastId: podcast.collectionId,
-                podcastName: podcast.collectionName,
-                podcastArtwork: podcast.artworkUrl600,
-                episodeArtwork
-              };
-
-              if (episode.audioUrl) {
-                await downloadEpisode(episode);
-              }
+            const isDownloaded = currentDls.some(d => d.id === episode.id);
+            if (!isDownloaded && episode.audioUrl) {
+              console.log(`Auto-downloading new episode from ${podcast.collectionName}: ${episode.title}`);
+              await downloadEpisode(episode);
             }
           }
         } catch (error) {
@@ -147,8 +111,6 @@ export default function App() {
 
     return () => clearInterval(interval);
   }, [settings.autoDownload, subscriptions]);
-
-
 
   useEffect(() => {
     if (theme === 'default') {
@@ -232,4 +194,3 @@ export default function App() {
     </div>
   );
 }
-

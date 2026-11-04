@@ -1,4 +1,5 @@
 import { useStore } from '../store';
+import { useShallow } from 'zustand/react/shallow';
 import { 
   Info, 
   Trash2, 
@@ -107,7 +108,18 @@ export function Settings() {
     updateSettings,
     theme,
     setTheme
-  } = useStore();
+  } = useStore(useShallow((s) => ({
+    downloads: s.downloads,
+    subscriptions: s.subscriptions,
+    history: s.history,
+    clearSubscriptions: s.clearSubscriptions,
+    clearDownloads: s.clearDownloads,
+    clearHistory: s.clearHistory,
+    settings: s.settings,
+    updateSettings: s.updateSettings,
+    theme: s.theme,
+    setTheme: s.setTheme,
+  })));
   
   const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>('default');
   const [confirming, setConfirming] = useState<'downloads' | 'subscriptions' | 'history' | 'images' | 'reset' | null>(null);
@@ -188,7 +200,7 @@ export function Settings() {
         const { publicKey } = await response.json();
         const applicationServerKey = urlBase64ToUint8Array(publicKey);
 
-        await reg.pushManager.subscribe({
+        const sub = await reg.pushManager.subscribe({
           userVisibleOnly: true,
           applicationServerKey
         });
@@ -199,6 +211,16 @@ export function Settings() {
           localStorage.setItem('pushSubId', subId);
         }
 
+        try {
+          await fetch('/api/subscribe', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ subscription: sub, subId })
+          });
+        } catch (subErr) {
+          console.warn('Falha ao sincronizar assinatura push:', subErr);
+        }
+
         showMessage('Notificações Push ativadas com sucesso!');
       }
     } catch (err) {
@@ -207,8 +229,23 @@ export function Settings() {
     }
   };
 
-  const simulateNewEpisode = () => {
+  const simulateNewEpisode = async () => {
     if (notificationPermission === 'granted') {
+      const subId = localStorage.getItem('pushSubId');
+      try {
+        const res = await fetch('/api/send-test-push', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ subId })
+        });
+        if (res.ok) {
+          showMessage('Notificação Push disparada do servidor!');
+          return;
+        }
+      } catch (e) {
+        // Fallback para notificação direta no SW
+      }
+
       navigator.serviceWorker.getRegistration().then(reg => {
         const options = {
           body: 'Um novo episódio do seu podcast favorito acabou de sair!',

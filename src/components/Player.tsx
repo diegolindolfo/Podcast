@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Play, Pause, SkipBack, SkipForward, ChevronDown, Clock, FastForward, ListMusic, Trash2 } from 'lucide-react';
 import { useStore } from '../store';
+import { useShallow } from 'zustand/react/shallow';
 import { getCachedAudioUrl } from '../services/downloader';
 import { clsx } from 'clsx';
 import { motion, AnimatePresence } from 'motion/react';
@@ -27,7 +28,28 @@ export function Player() {
     clearQueue,
     playNext,
     settings
-  } = useStore();
+  } = useStore(useShallow((s) => ({
+    currentEpisode: s.currentEpisode,
+    isPlaying: s.isPlaying,
+    setIsPlaying: s.setIsPlaying,
+    progress: s.progress,
+    setProgress: s.setProgress,
+    duration: s.duration,
+    setDuration: s.setDuration,
+    playbackRate: s.playbackRate,
+    setPlaybackRate: s.setPlaybackRate,
+    volume: s.volume,
+    savedProgress: s.savedProgress,
+    saveEpisodeProgress: s.saveEpisodeProgress,
+    sleepTimer: s.sleepTimer,
+    setSleepTimer: s.setSleepTimer,
+    addToHistory: s.addToHistory,
+    queue: s.queue,
+    removeFromQueue: s.removeFromQueue,
+    clearQueue: s.clearQueue,
+    playNext: s.playNext,
+    settings: s.settings,
+  })));
   
   const audioRef = useRef<HTMLAudioElement>(null);
   const [isExpanded, setIsExpanded] = useState(false);
@@ -46,12 +68,12 @@ export function Player() {
         artist: currentEpisode.podcastName,
         album: currentEpisode.podcastName,
         artwork: [
-          { src: currentEpisode.episodeArtwork || currentEpisode.podcastArtwork, sizes: '96x96', type: 'image/png' },
-          { src: currentEpisode.episodeArtwork || currentEpisode.podcastArtwork, sizes: '128x128', type: 'image/png' },
-          { src: currentEpisode.episodeArtwork || currentEpisode.podcastArtwork, sizes: '192x192', type: 'image/png' },
-          { src: currentEpisode.episodeArtwork || currentEpisode.podcastArtwork, sizes: '256x256', type: 'image/png' },
-          { src: currentEpisode.episodeArtwork || currentEpisode.podcastArtwork, sizes: '384x384', type: 'image/png' },
-          { src: currentEpisode.episodeArtwork || currentEpisode.podcastArtwork, sizes: '512x512', type: 'image/png' },
+          { src: currentEpisode.episodeArtwork || currentEpisode.podcastArtwork, sizes: '96x96' },
+          { src: currentEpisode.episodeArtwork || currentEpisode.podcastArtwork, sizes: '128x128' },
+          { src: currentEpisode.episodeArtwork || currentEpisode.podcastArtwork, sizes: '192x192' },
+          { src: currentEpisode.episodeArtwork || currentEpisode.podcastArtwork, sizes: '256x256' },
+          { src: currentEpisode.episodeArtwork || currentEpisode.podcastArtwork, sizes: '384x384' },
+          { src: currentEpisode.episodeArtwork || currentEpisode.podcastArtwork, sizes: '512x512' },
         ]
       });
 
@@ -141,18 +163,25 @@ export function Player() {
     if (!currentEpisode) return;
     
     let active = true;
+    let objectUrlToRevoke: string | null = null;
     hasRestoredProgress.current = false;
     
     const loadAudio = async () => {
       const cachedUrl = await getCachedAudioUrl(currentEpisode.audioUrl);
       if (active) {
+        if (cachedUrl && cachedUrl.startsWith('blob:')) objectUrlToRevoke = cachedUrl;
         setAudioSrc(cachedUrl || currentEpisode.audioUrl);
+      } else if (cachedUrl && cachedUrl.startsWith('blob:')) {
+        URL.revokeObjectURL(cachedUrl);
       }
     };
     loadAudio();
     
     return () => {
       active = false;
+      if (objectUrlToRevoke) {
+        URL.revokeObjectURL(objectUrlToRevoke);
+      }
     };
   }, [currentEpisode]);
 

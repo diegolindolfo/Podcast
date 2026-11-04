@@ -1,200 +1,27 @@
 import express from 'express';
-import cors from 'cors';
 import compression from 'compression';
-import rateLimit from 'express-rate-limit';
-import Parser from 'rss-parser';
-import { createServer as createViteServer } from 'vite';
-import webpush from 'web-push';
 import path from 'path';
-import Database from 'better-sqlite3';
+import { apiRouter } from './api/router';
 
-
-
-// VAPID keys for Web Push
-const vapidKeys = {
-  publicKey: process.env.VAPID_PUBLIC_KEY || '',
-  privateKey: process.env.VAPID_PRIVATE_KEY || ''
-};
-
-if (!vapidKeys.publicKey || !vapidKeys.privateKey) {
-  console.warn('⚠️ WARNING: VAPID keys are missing! Web Push notifications will not function properly.');
-  console.warn('Please set VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY in your .env file.');
-} else {
-  webpush.setVapidDetails(
-    'mailto:test@example.com',
-    vapidKeys.publicKey,
-    vapidKeys.privateKey
-  );
-}
-
-// Initialize SQLite database for caching
-const dbPath = path.resolve(process.cwd(), 'api_cache.db');
-const cacheDb = new Database(dbPath);
-
-// Create table if not exists
-cacheDb.exec(`
-  CREATE TABLE IF NOT EXISTS api_cache (
-    key TEXT PRIMARY KEY,
-    data TEXT,
-    expires_at INTEGER
-  )
-`);
-
-// Helper functions for cache
-function getCache(key: string): any | null {
-  try {
-    const row = cacheDb.prepare('SELECT data, expires_at FROM api_cache WHERE key = ?').get(key) as { data: string, expires_at: number } | undefined;
-    if (row && row.expires_at > Date.now()) {
-      return JSON.parse(row.data);
-    }
-  } catch (error) {
-    console.error('SQLite cache read error:', error);
-  }
-  return null;
-}
-
-function setCache(key: string, data: any, ttlMs: number): void {
-  try {
-    const expiresAt = Date.now() + ttlMs;
-    cacheDb.prepare('INSERT OR REPLACE INTO api_cache (key, data, expires_at) VALUES (?, ?, ?)').run(key, JSON.stringify(data), expiresAt);
-  } catch (error) {
-    console.error('SQLite cache write error:', error);
-  }
-}
+// `npm start` passes --prod so production mode does not depend on NODE_ENV being set
+const isProduction = process.env.NODE_ENV === 'production' || process.argv.includes('--prod');
 
 async function startServer() {
   const app = express();
-  const PORT = 3000;
+  const PORT = Number(process.env.PORT) || 3000;
 
-  // Trust proxy for external Cloud Run reverse proxy layers
-  app.set('trust proxy', true);
+  // Trust the first reverse proxy hop only in production (so X-Forwarded-For can't be spoofed locally)
+  if (isProduction) {
+    app.set('trust proxy', 1);
+  }
 
-  app.use(cors());
   app.use(compression());
 
-  // Rate limiter for API endpoints (100 requests per 15 minutes)
-  const apiLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000,
-    max: 100,
-    standardHeaders: true,
-    legacyHeaders: false,
-    message: { error: 'Muitas requisições vindas deste IP, por favor tente novamente mais tarde.' }
-  });
-  app.use('/api', apiLimiter);
+  // API routes (rate limiting lives inside the shared router)
+  app.use('/api', apiRouter);
 
-  app.get('/api/health', (_req, res) => {
-    res.json({ status: 'ok', timestamp: new Date().toISOString() });
-  });
-
-  const parser = new Parser({
-    customFields: {
-      item: ['itunes:image', 'itunes:duration', 'itunes:summary', 'itunes:subtitle', 'enclosure'],
-      feed: ['itunes:image', 'image']
-    }
-  });
-
-  app.get('/api/vapidPublicKey', (_req, res) => {
-    res.json({ publicKey: vapidKeys.publicKey });
-  });
-
-  // Caching TTLs: search/top (1 hour), feed (15 minutes)
-  const SEARCH_TOP_TTL = 60 * 60 * 1000;
-  const FEED_TTL = 15 * 60 * 1000;
-
-  app.get('/api/search', async (req, res) => {
-    try {
-      const { q } = req.query;
-      if (!q) return res.json({ results: [] });
-      
-      const cacheKey = `search:${q}`;
-      const cached = getCache(cacheKey);
-      if (cached) {
-        return res.json(cached);
-      }
-
-      const response = await fetch(`https://itunes.apple.com/search?media=podcast&term=${encodeURIComponent(q as string)}&country=br`);
-      const data = await response.json();
-      
-      setCache(cacheKey, data, SEARCH_TOP_TTL);
-      res.json(data);
-    } catch (error) {
-      console.error('Search error:', error);
-      res.status(500).json({ error: 'Failed to search' });
-    }
-  });
-
-  app.get('/api/feed', async (req, res) => {
-    try {
-      const { url } = req.query;
-      if (!url) return res.status(400).json({ error: 'URL is required' });
-      
-      const cacheKey = `feed:${url}`;
-      const cached = getCache(cacheKey);
-      if (cached) {
-        return res.json(cached);
-      }
-
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 30000); // 30s timeout
-
-      try {
-        const response = await fetch(url as string, {
-          headers: {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-            'Accept': 'application/rss+xml, application/xml, text/xml, */*'
-          },
-          signal: controller.signal
-        });
-
-        if (!response.ok) {
-          throw new Error(`Failed to fetch feed: ${response.status} ${response.statusText}`);
-        }
-
-        const xml = await response.text();
-        const feed = await parser.parseString(xml.trim());
-        
-        setCache(cacheKey, feed, FEED_TTL);
-        res.json(feed);
-      } finally {
-        clearTimeout(timeout);
-      }
-    } catch (error) {
-      console.error('Feed error:', error);
-      res.status(500).json({ error: 'Failed to parse feed' });
-    }
-  });
-
-  app.get('/api/top', async (req, res) => {
-    try {
-      const { genre } = req.query;
-      const genreParam = genre ? `/genre=${genre}` : '';
-      
-      const cacheKey = `top:${genreParam}`;
-      const cached = getCache(cacheKey);
-      if (cached) {
-        return res.json(cached);
-      }
-
-      const rssResponse = await fetch(`https://itunes.apple.com/br/rss/toppodcasts/limit=50${genreParam}/json`);
-      const rssData = await rssResponse.json();
-      
-      const entries = rssData.feed?.entry || [];
-      const ids = entries.map((e: any) => e.id.attributes['im:id']).join(',');
-      
-      if (!ids) return res.json({ results: [] });
-      
-      const lookupResponse = await fetch(`https://itunes.apple.com/lookup?id=${ids}&country=br`);
-      const lookupData = await lookupResponse.json();
-      
-      setCache(cacheKey, lookupData, SEARCH_TOP_TTL);
-      res.json(lookupData);
-    } catch (error) {
-      console.error('Top podcasts error:', error);
-      res.status(500).json({ error: 'Failed to fetch top podcasts' });
-    }
-  });
-
-  if (process.env.NODE_ENV !== 'production') {
+  if (!isProduction) {
+    const { createServer: createViteServer } = await import('vite');
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: 'spa',
@@ -209,8 +36,11 @@ async function startServer() {
   }
 
   app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Server running on http://localhost:${PORT}`);
+    console.log(`Server running on http://localhost:${PORT} (${isProduction ? 'production' : 'development'})`);
   });
 }
 
-startServer();
+startServer().catch((err) => {
+  console.error('Failed to start server:', err);
+  process.exit(1);
+});
