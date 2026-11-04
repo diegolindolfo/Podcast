@@ -17,12 +17,11 @@ Aplicativo web progressivo (PWA) de podcasts em português, com busca via iTunes
    ```bash
    npm install
    ```
-2. (Opcional) Configure as chaves VAPID no arquivo `.env` a partir do `.env.example` para testar o envio de Web Push pelo servidor.
-3. Inicie o servidor de desenvolvimento:
+2. Inicie o servidor de desenvolvimento:
    ```bash
    npm run dev
    ```
-4. Acesse `http://localhost:3000`.
+3. Acesse `http://localhost:3000`.
 
 ## Scripts Disponíveis
 

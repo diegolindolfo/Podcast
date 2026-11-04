@@ -49,7 +49,7 @@ export default defineConfig(() => {
         manifest: {
           name: 'Podcast App',
           short_name: 'Podcast',
-          description: 'PWA de podcast com notificações de novos episódios.',
+          description: 'PWA de podcast com reprodução em segundo plano e downloads offline.',
           theme_color: '#09090b',
           background_color: '#09090b',
           display: 'standalone',

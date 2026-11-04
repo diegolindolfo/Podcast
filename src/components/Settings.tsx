@@ -3,8 +3,6 @@ import { useShallow } from 'zustand/react/shallow';
 import { 
   Info, 
   Trash2, 
-  Bell, 
-  BellRing, 
   Check, 
   X, 
   Zap, 
@@ -21,20 +19,9 @@ import {
   SettingsIcon as CustomSettingsIcon 
 } from './CustomIcons';
 import { deleteDownloadedEpisode } from '../services/downloader';
-import { useState, useEffect, ReactNode } from 'react';
+import { useState, ReactNode } from 'react';
 import { clsx } from 'clsx';
 import { motion, AnimatePresence } from 'motion/react';
-
-function urlBase64ToUint8Array(base64String: string) {
-  const padding = '='.repeat((4 - base64String.length % 4) % 4);
-  const base64 = (base64String + padding).replace(/\-/g, '+').replace(/_/g, '/');
-  const rawData = window.atob(base64);
-  const outputArray = new Uint8Array(rawData.length);
-  for (let i = 0; i < rawData.length; ++i) {
-    outputArray[i] = rawData.charCodeAt(i);
-  }
-  return outputArray;
-}
 
 const THEMES = [
   { name: 'Bento Limão (Neon)', value: 'bento-lime', color: '#D9F99D' },
@@ -121,15 +108,8 @@ export function Settings() {
     setTheme: s.setTheme,
   })));
   
-  const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>('default');
   const [confirming, setConfirming] = useState<'downloads' | 'subscriptions' | 'history' | 'images' | 'reset' | null>(null);
   const [message, setMessage] = useState<{ text: string, type: 'success' | 'error' } | null>(null);
-
-  useEffect(() => {
-    if ('Notification' in window) {
-      setNotificationPermission(Notification.permission);
-    }
-  }, []);
 
   const totalDownloadSize = downloads.reduce((acc, curr) => acc + (curr.size || 0), 0);
   const formattedSize = (totalDownloadSize / (1024 * 1024)).toFixed(1);
@@ -165,7 +145,7 @@ export function Settings() {
       await caches.delete('podcast-image-cache-v1');
       setConfirming(null);
       showMessage('Cache de imagens limpo');
-    } catch (e) {
+    } catch {
       showMessage('Falha ao limpar cache de imagens', 'error');
     }
   };
@@ -179,89 +159,8 @@ export function Settings() {
       setTheme('default');
       setConfirming(null);
       showMessage('Todas as configurações foram resetadas');
-    } catch (e) {
+    } catch {
       showMessage('Erro ao resetar configurações', 'error');
-    }
-  };
-
-  const requestNotificationPermission = async () => {
-    if (!('Notification' in window) || !('serviceWorker' in navigator)) {
-      showMessage('Este navegador não suporta notificações Push.', 'error');
-      return;
-    }
-    try {
-      const permission = await Notification.requestPermission();
-      setNotificationPermission(permission);
-      
-      if (permission === 'granted') {
-        const reg = await navigator.serviceWorker.ready;
-        
-        const response = await fetch('/api/vapidPublicKey');
-        const { publicKey } = await response.json();
-        const applicationServerKey = urlBase64ToUint8Array(publicKey);
-
-        const sub = await reg.pushManager.subscribe({
-          userVisibleOnly: true,
-          applicationServerKey
-        });
-
-        let subId = localStorage.getItem('pushSubId');
-        if (!subId) {
-          subId = crypto.randomUUID();
-          localStorage.setItem('pushSubId', subId);
-        }
-
-        try {
-          await fetch('/api/subscribe', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ subscription: sub, subId })
-          });
-        } catch (subErr) {
-          console.warn('Falha ao sincronizar assinatura push:', subErr);
-        }
-
-        showMessage('Notificações Push ativadas com sucesso!');
-      }
-    } catch (err) {
-      console.error('Error enabling push:', err);
-      showMessage('Erro ao ativar notificações Push.', 'error');
-    }
-  };
-
-  const simulateNewEpisode = async () => {
-    if (notificationPermission === 'granted') {
-      const subId = localStorage.getItem('pushSubId');
-      try {
-        const res = await fetch('/api/send-test-push', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ subId })
-        });
-        if (res.ok) {
-          showMessage('Notificação Push disparada do servidor!');
-          return;
-        }
-      } catch (e) {
-        // Fallback para notificação direta no SW
-      }
-
-      navigator.serviceWorker.getRegistration().then(reg => {
-        const options = {
-          body: 'Um novo episódio do seu podcast favorito acabou de sair!',
-          icon: '/icon.svg',
-          badge: '/icon.svg',
-          vibrate: [100, 50, 100],
-        };
-        
-        if (reg && reg.showNotification) {
-          reg.showNotification('Novo Episódio Disponível!', options);
-        } else {
-          new Notification('Novo Episódio Disponível!', options);
-        }
-      });
-    } else {
-      showMessage('Por favor, ative as notificações primeiro.', 'error');
     }
   };
 
@@ -402,41 +301,6 @@ export function Settings() {
               ))}
             </select>
           </SettingItem>
-        </Section>
-
-        {/* Notifications Section */}
-        <Section title="Notificações">
-          <SettingItem 
-            icon={<Bell size={20} />}
-            title="Novos Episódios"
-            subtitle="Avisar quando houver novidades"
-            active={notificationPermission === 'granted'}
-          >
-            <button 
-              onClick={requestNotificationPermission}
-              disabled={notificationPermission === 'granted'}
-              className={clsx(
-                "text-xs px-3 py-1.5 rounded-lg font-bold transition-all",
-                notificationPermission === 'granted' 
-                  ? "bg-accent-main/10 text-accent-main" 
-                  : "bg-bg-surface-hover text-text-muted hover:bg-border-subtle"
-              )}
-            >
-              {notificationPermission === 'granted' ? 'ATIVADO' : 'ATIVAR'}
-            </button>
-          </SettingItem>
-          {notificationPermission === 'granted' && (
-            <>
-              <Divider />
-              <SettingItem 
-                icon={<BellRing size={20} />}
-                title="Testar Notificação"
-                onClick={simulateNewEpisode}
-              >
-                <div />
-              </SettingItem>
-            </>
-          )}
         </Section>
 
         {/* Storage Section */}

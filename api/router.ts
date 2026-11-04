@@ -1,7 +1,6 @@
 import express from 'express';
 import cors from 'cors';
 import Parser from 'rss-parser';
-import webpush from 'web-push';
 import rateLimit from 'express-rate-limit';
 import { getCache, setCache } from './cache';
 import { safeFetch, readTextLimited } from './ssrf';
@@ -20,28 +19,6 @@ apiRouter.use(rateLimit({
   message: { error: 'Muitas requisições vindas deste IP, por favor tente novamente mais tarde.' }
 }));
 
-// VAPID keys for Web Push
-const vapidKeys = {
-  publicKey: process.env.VAPID_PUBLIC_KEY || '',
-  privateKey: process.env.VAPID_PRIVATE_KEY || ''
-};
-
-if (vapidKeys.publicKey && vapidKeys.privateKey) {
-  try {
-    webpush.setVapidDetails(
-      process.env.VAPID_SUBJECT || 'mailto:support@podcastapp.local',
-      vapidKeys.publicKey,
-      vapidKeys.privateKey
-    );
-  } catch (err) {
-    console.warn('Erro ao configurar VAPID details:', err);
-  }
-}
-
-// In-memory push subscriptions store (subId -> subscription).
-// NOTE: not persistent; lost on restart and not shared between serverless instances.
-const pushSubscriptions = new Map<string, any>();
-
 const parser = new Parser({
   customFields: {
     item: ['itunes:image', 'itunes:duration', 'itunes:summary', 'itunes:subtitle', 'enclosure'],
@@ -55,57 +32,6 @@ const MAX_FEED_BYTES = 10 * 1024 * 1024; // 10MB
 
 apiRouter.get('/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
-});
-
-apiRouter.get('/vapidPublicKey', (_req, res) => {
-  res.json({ publicKey: vapidKeys.publicKey });
-});
-
-// Endpoint to store web push subscription
-apiRouter.post('/subscribe', (req, res) => {
-  try {
-    const { subscription, subId } = req.body;
-    if (!subscription || typeof subscription.endpoint !== 'string') {
-      return res.status(400).json({ error: 'Assinatura push inválida.' });
-    }
-    const key = typeof subId === 'string' && subId ? subId : subscription.endpoint;
-    pushSubscriptions.set(key, subscription);
-    res.json({ success: true });
-  } catch (err) {
-    console.error('Erro ao salvar subscription push:', err);
-    res.status(500).json({ error: 'Falha ao registrar assinatura push.' });
-  }
-});
-
-// Send a test push notification to the caller's own device
-apiRouter.post('/send-test-push', async (req, res) => {
-  try {
-    const { subId } = req.body;
-    if (!vapidKeys.publicKey || !vapidKeys.privateKey) {
-      return res.status(400).json({ error: 'VAPID keys não configuradas no servidor (.env).' });
-    }
-    if (!subId || typeof subId !== 'string') {
-      return res.status(400).json({ error: 'subId é obrigatório.' });
-    }
-
-    const targetSub = pushSubscriptions.get(subId);
-    if (!targetSub) {
-      return res.status(404).json({ error: 'Dispositivo não registrado para receber push.' });
-    }
-
-    const payload = JSON.stringify({
-      title: 'Episódio Novo!',
-      body: 'Notificação de teste enviada pelo servidor.',
-      icon: '/icon-192.png',
-      data: { url: '/' }
-    });
-
-    await webpush.sendNotification(targetSub, payload);
-    res.json({ success: true, message: 'Notificação push enviada com sucesso!' });
-  } catch (err: any) {
-    console.error('Erro ao disparar push notification:', err);
-    res.status(500).json({ error: 'Falha ao disparar push notification.' });
-  }
 });
 
 // Audio proxy to bypass CORS restrictions on audio CDNs
