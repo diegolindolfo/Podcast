@@ -1,6 +1,6 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
-import { validateSafeUrl, readTextLimited } from '../api/ssrf';
+import { validateSafeUrl, readTextLimited } from '../api/index';
 
 describe('SSRF Protection', () => {
   test('deve bloquear localhost e subdomínios .localhost/.local/.internal', async () => {

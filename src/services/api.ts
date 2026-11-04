@@ -8,16 +8,34 @@ const feedCache = new Map<string, any>();
 const topCache = new Map<string, Podcast[]>();
 
 export async function searchPodcasts(query: string): Promise<Podcast[]> {
-  if (searchCache.has(query)) {
-    return searchCache.get(query)!;
+  const trimmed = query.trim();
+  if (!trimmed) return [];
+
+  const cacheKey = trimmed.toLowerCase();
+  if (searchCache.has(cacheKey)) {
+    return searchCache.get(cacheKey)!;
   }
 
-  const res = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
-  if (!res.ok) throw new Error('Failed to search');
-  const data = await res.json();
-  const results = data.results || [];
-  
-  searchCache.set(query, results);
+  let results: Podcast[] | null = null;
+
+  try {
+    const res = await fetch(`/api/search?q=${encodeURIComponent(trimmed)}`);
+    if (res.ok) {
+      const data = await res.json();
+      results = data.results || [];
+    }
+  } catch {
+    // Fallback to direct iTunes CORS API below
+  }
+
+  if (results === null) {
+    const fallbackRes = await fetch(`https://itunes.apple.com/search?media=podcast&term=${encodeURIComponent(trimmed)}&country=br`);
+    if (!fallbackRes.ok) throw new Error('Failed to search');
+    const fallbackData = await fallbackRes.json();
+    results = fallbackData.results || [];
+  }
+
+  searchCache.set(cacheKey, results);
   return results;
 }
 
@@ -27,12 +45,36 @@ export async function getTopPodcasts(genre?: string): Promise<Podcast[]> {
     return topCache.get(cacheKey)!;
   }
 
-  const url = genre ? `/api/top?genre=${genre}` : '/api/top';
-  const res = await fetch(url);
-  if (!res.ok) throw new Error('Failed to fetch top podcasts');
-  const data = await res.json();
-  const results = data.results || [];
-  
+  let results: Podcast[] | null = null;
+
+  try {
+    const url = genre ? `/api/top?genre=${encodeURIComponent(genre)}` : '/api/top';
+    const res = await fetch(url);
+    if (res.ok) {
+      const data = await res.json();
+      results = data.results || [];
+    }
+  } catch {
+    // Fallback to direct iTunes CORS API below
+  }
+
+  if (results === null) {
+    const sanitizedGenre = genre && /^\d+$/.test(genre) ? `/genre=${genre}` : '';
+    const rssRes = await fetch(`https://itunes.apple.com/br/rss/toppodcasts/limit=50${sanitizedGenre}/json`);
+    if (!rssRes.ok) throw new Error('Failed to fetch top podcasts');
+    const rssData = await rssRes.json();
+    const entries = rssData.feed?.entry || [];
+    const ids = entries.map((e: any) => e.id?.attributes?.['im:id']).filter(Boolean).join(',');
+    if (!ids) {
+      results = [];
+    } else {
+      const lookupRes = await fetch(`https://itunes.apple.com/lookup?id=${encodeURIComponent(ids)}&country=br`);
+      if (!lookupRes.ok) throw new Error('Failed to fetch top podcasts');
+      const lookupData = await lookupRes.json();
+      results = lookupData.results || [];
+    }
+  }
+
   topCache.set(cacheKey, results);
   return results;
 }

@@ -191,7 +191,9 @@ export function PodcastDetail({ podcast, onBack }: PodcastDetailProps) {
       {/* Episodes */}
       <div className="px-4 py-6">
         {(() => {
-          const normalizedQuery = episodeQuery.trim().toLowerCase();
+          const normalizeText = (s?: string) =>
+            (s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+          const normalizedQuery = normalizeText(episodeQuery.trim());
           const filteredAndSortedEpisodes = episodes
             .filter(episode => {
               if (filterBy === 'downloaded' && !downloads.some(d => d.id === episode.id)) {
@@ -201,8 +203,8 @@ export function PodcastDetail({ podcast, onBack }: PodcastDetailProps) {
                 return false;
               }
               if (normalizedQuery) {
-                const inTitle = episode.title?.toLowerCase().includes(normalizedQuery);
-                const inDesc = episode.description?.toLowerCase().includes(normalizedQuery);
+                const inTitle = normalizeText(episode.title).includes(normalizedQuery);
+                const inDesc = normalizeText(episode.description).includes(normalizedQuery);
                 if (!inTitle && !inDesc) return false;
               }
               return true;
