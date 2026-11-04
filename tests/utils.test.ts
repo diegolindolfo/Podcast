@@ -1,6 +1,13 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
-import { formatDuration, parseRssEpisode } from '../src/utils';
+import {
+  formatDuration,
+  parseRssEpisode,
+  parseTimestampToSeconds,
+  splitTextWithTimestamps,
+  generateOpml,
+  parseOpmlFeeds
+} from '../src/utils';
 import { Podcast } from '../src/types';
 
 describe('Utils', () => {
@@ -65,6 +72,58 @@ describe('Utils', () => {
 
       const episode = parseRssEpisode(item, mockPodcast);
       assert.equal(episode.episodeArtwork, 'https://example.com/custom-art.jpg');
+    });
+  });
+
+  describe('Show Notes & Timestamps', () => {
+    test('parseTimestampToSeconds converte MM:SS e HH:MM:SS', () => {
+      assert.equal(parseTimestampToSeconds('05:30'), 330);
+      assert.equal(parseTimestampToSeconds('1:02:03'), 3723);
+      assert.equal(parseTimestampToSeconds('99:99'), null);
+    });
+
+    test('splitTextWithTimestamps limpa HTML e destaca timestamps', () => {
+      const html = '<p>Intro em 00:30<br/>Bloco principal em 01:15:00!</p>';
+      const segs = splitTextWithTimestamps(html);
+      const timestamps = segs.filter(s => s.type === 'timestamp');
+      assert.equal(timestamps.length, 2);
+      assert.equal(timestamps[0].value, '00:30');
+      assert.equal(timestamps[0].seconds, 30);
+      assert.equal(timestamps[1].value, '01:15:00');
+      assert.equal(timestamps[1].seconds, 4500);
+    });
+  });
+
+  describe('OPML Export & Import', () => {
+    test('generateOpml e parseOpmlFeeds fazem round-trip das inscrições', () => {
+      const subs: Podcast[] = [
+        {
+          collectionId: 1,
+          collectionName: 'Café & Código',
+          artistName: 'Dev',
+          artworkUrl600: 'https://example.com/a.jpg',
+          feedUrl: 'https://example.com/cafe.xml?a=1&b=2'
+        },
+        {
+          collectionId: 2,
+          collectionName: 'Histórias',
+          artistName: 'Host',
+          artworkUrl600: 'https://example.com/b.jpg',
+          feedUrl: 'https://example.com/historias.xml'
+        }
+      ];
+
+      const xml = generateOpml(subs);
+      const parsed = parseOpmlFeeds(xml);
+      assert.equal(parsed.length, 2);
+      assert.deepEqual(parsed[0], {
+        title: 'Café & Código',
+        xmlUrl: 'https://example.com/cafe.xml?a=1&b=2'
+      });
+      assert.deepEqual(parsed[1], {
+        title: 'Histórias',
+        xmlUrl: 'https://example.com/historias.xml'
+      });
     });
   });
 });

@@ -11,7 +11,10 @@ import {
   RotateCcw,
   AlertCircle,
   SkipBack,
-  SkipForward
+  SkipForward,
+  Upload,
+  Download,
+  Loader2
 } from 'lucide-react';
 import { 
   DownloadsIcon, 
@@ -19,7 +22,9 @@ import {
   SettingsIcon as CustomSettingsIcon 
 } from './CustomIcons';
 import { deleteDownloadedEpisode } from '../services/downloader';
-import { useState, ReactNode } from 'react';
+import { getPodcastFeed } from '../services/api';
+import { generateOpml, parseOpmlFeeds } from '../utils';
+import { useState, useRef, ReactNode, ChangeEvent } from 'react';
 import { clsx } from 'clsx';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -87,6 +92,7 @@ export function Settings() {
   const { 
     downloads, 
     subscriptions, 
+    subscribe,
     history, 
     clearSubscriptions, 
     clearDownloads, 
@@ -98,6 +104,7 @@ export function Settings() {
   } = useStore(useShallow((s) => ({
     downloads: s.downloads,
     subscriptions: s.subscriptions,
+    subscribe: s.subscribe,
     history: s.history,
     clearSubscriptions: s.clearSubscriptions,
     clearDownloads: s.clearDownloads,
@@ -110,6 +117,8 @@ export function Settings() {
   
   const [confirming, setConfirming] = useState<'downloads' | 'subscriptions' | 'history' | 'images' | 'reset' | null>(null);
   const [message, setMessage] = useState<{ text: string, type: 'success' | 'error' } | null>(null);
+  const [importingOpml, setImportingOpml] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const totalDownloadSize = downloads.reduce((acc, curr) => acc + (curr.size || 0), 0);
   const formattedSize = (totalDownloadSize / (1024 * 1024)).toFixed(1);
@@ -161,6 +170,97 @@ export function Settings() {
       showMessage('Todas as configurações foram resetadas');
     } catch {
       showMessage('Erro ao resetar configurações', 'error');
+    }
+  };
+
+  const handleExportOpml = () => {
+    if (subscriptions.length === 0) {
+      showMessage('Você ainda não possui inscrições para exportar.', 'error');
+      return;
+    }
+    const xml = generateOpml(subscriptions);
+    const blob = new Blob([xml], { type: 'text/x-opml;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `podcasts-backup-${new Date().toISOString().slice(0, 10)}.opml`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showMessage('Arquivo OPML exportado com sucesso!');
+  };
+
+  const handleImportOpml = async (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+
+    setImportingOpml(true);
+    try {
+      const text = await file.text();
+      const entries = parseOpmlFeeds(text);
+      if (entries.length === 0) {
+        showMessage('Nenhum feed RSS encontrado no arquivo OPML.', 'error');
+        return;
+      }
+
+      const existingUrls = new Set(subscriptions.map(s => s.feedUrl));
+      let importedCount = 0;
+
+      for (const entry of entries) {
+        if (existingUrls.has(entry.xmlUrl)) continue;
+        existingUrls.add(entry.xmlUrl);
+
+        let collectionName = entry.title || entry.xmlUrl;
+        let artistName = 'Podcast RSS';
+        let artworkUrl600 = '/icon-512.png';
+
+        try {
+          const feed = await getPodcastFeed(entry.xmlUrl);
+          if (feed?.title) collectionName = feed.title;
+          if (feed?.itunes?.author || feed?.creator) {
+            artistName = feed.itunes?.author || feed.creator;
+          }
+          if (typeof feed?.['itunes:image'] === 'string') {
+            artworkUrl600 = feed['itunes:image'];
+          } else if (feed?.['itunes:image']?.$?.href) {
+            artworkUrl600 = feed['itunes:image'].$.href;
+          } else if (feed?.itunes?.image) {
+            artworkUrl600 = feed.itunes.image;
+          } else if (feed?.image?.url) {
+            artworkUrl600 = feed.image.url;
+          }
+        } catch {
+          // Subscribe even if the initial feed fetch fails
+        }
+
+        // Stable numeric ID derived from the feed URL
+        let hash = 0;
+        for (let i = 0; i < entry.xmlUrl.length; i++) {
+          hash = ((hash << 5) - hash + entry.xmlUrl.charCodeAt(i)) | 0;
+        }
+        const collectionId = Math.abs(hash) || Date.now();
+
+        await subscribe({
+          collectionId,
+          collectionName,
+          artistName,
+          artworkUrl600,
+          feedUrl: entry.xmlUrl
+        });
+        importedCount++;
+      }
+
+      if (importedCount > 0) {
+        showMessage(`${importedCount} podcast(s) importado(s) com sucesso!`);
+      } else {
+        showMessage('Todos os podcasts do arquivo já estavam na sua biblioteca.');
+      }
+    } catch {
+      showMessage('Erro ao ler o arquivo OPML.', 'error');
+    } finally {
+      setImportingOpml(false);
     }
   };
 
@@ -378,6 +478,36 @@ export function Settings() {
                 </button>
               )
             )}
+          </SettingItem>
+        </Section>
+
+        {/* Backup OPML Section */}
+        <Section title="Backup e Migração (OPML)">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".opml,.xml,text/xml,application/xml"
+            onChange={handleImportOpml}
+            className="hidden"
+          />
+          <SettingItem
+            icon={importingOpml ? <Loader2 size={20} className="animate-spin" /> : <Upload size={20} />}
+            title="Importar OPML"
+            subtitle={importingOpml ? "Importando feeds..." : "Restaurar inscrições de outro app"}
+            onClick={() => !importingOpml && fileInputRef.current?.click()}
+          >
+            <span className="text-xs font-bold text-accent-main uppercase">
+              {importingOpml ? 'Aguarde' : 'Escolher'}
+            </span>
+          </SettingItem>
+          <Divider />
+          <SettingItem
+            icon={<Download size={20} />}
+            title="Exportar OPML"
+            subtitle={`Salvar ${subscriptions.length} inscrição(ões) em arquivo`}
+            onClick={handleExportOpml}
+          >
+            <span className="text-xs font-bold text-text-muted uppercase">Baixar</span>
           </SettingItem>
         </Section>
 

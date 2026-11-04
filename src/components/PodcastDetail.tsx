@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ChevronLeft, Play, Pause, Download, Check, Loader2, Plus } from 'lucide-react';
+import { ChevronLeft, Play, Pause, Download, Check, Loader2, Plus, Search as SearchIcon, X } from 'lucide-react';
 import { Podcast, Episode } from '../types';
 import { getPodcastFeed } from '../services/api';
 import { useStore } from '../store';
@@ -23,6 +23,7 @@ export function PodcastDetail({ podcast, onBack }: PodcastDetailProps) {
   const [downloadProgress, setDownloadProgress] = useState<Record<string, number>>({});
   const [sortBy, setSortBy] = useState<'newest' | 'oldest'>('newest');
   const [filterBy, setFilterBy] = useState<'all' | 'unheard' | 'downloaded'>('all');
+  const [episodeQuery, setEpisodeQuery] = useState('');
   
   const { 
     currentEpisode, 
@@ -190,14 +191,19 @@ export function PodcastDetail({ podcast, onBack }: PodcastDetailProps) {
       {/* Episodes */}
       <div className="px-4 py-6">
         {(() => {
+          const normalizedQuery = episodeQuery.trim().toLowerCase();
           const filteredAndSortedEpisodes = episodes
             .filter(episode => {
-              if (filterBy === 'all') return true;
-              if (filterBy === 'downloaded') {
-                return downloads.some(d => d.id === episode.id);
+              if (filterBy === 'downloaded' && !downloads.some(d => d.id === episode.id)) {
+                return false;
               }
-              if (filterBy === 'unheard') {
-                return finishedAt[episode.id] === undefined;
+              if (filterBy === 'unheard' && finishedAt[episode.id] !== undefined) {
+                return false;
+              }
+              if (normalizedQuery) {
+                const inTitle = episode.title?.toLowerCase().includes(normalizedQuery);
+                const inDesc = episode.description?.toLowerCase().includes(normalizedQuery);
+                if (!inTitle && !inDesc) return false;
               }
               return true;
             })
@@ -220,6 +226,27 @@ export function PodcastDetail({ podcast, onBack }: PodcastDetailProps) {
 
               {!loading && (
                 <div className="flex flex-col gap-3 mb-6">
+                  {/* Busca de episódios dentro do podcast */}
+                  <div className="relative">
+                    <SearchIcon size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
+                    <input
+                      type="text"
+                      value={episodeQuery}
+                      onChange={(e) => { setEpisodeQuery(e.target.value); setVisibleCount(50); }}
+                      placeholder="Buscar episódio por título ou assunto..."
+                      className="w-full bg-white/5 border border-white/5 rounded-2xl pl-10 pr-10 py-2.5 text-xs text-text-main placeholder:text-text-muted focus:outline-none focus:border-accent-main/50 transition-colors"
+                    />
+                    {episodeQuery && (
+                      <button
+                        onClick={() => { setEpisodeQuery(''); setVisibleCount(50); }}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-main p-1"
+                        title="Limpar busca"
+                      >
+                        <X size={14} />
+                      </button>
+                    )}
+                  </div>
+
                   {/* Filtro e Ordenação em Linha com visual moderno */}
                   <div className="flex flex-wrap gap-3 justify-between items-center bg-white/5 p-2 rounded-2xl border border-white/5">
                     <div className="flex items-center gap-1 bg-black/20 p-1 rounded-xl">

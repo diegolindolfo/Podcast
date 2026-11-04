@@ -1,14 +1,16 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Play, Pause, SkipBack, SkipForward, ChevronDown, Clock, FastForward, ListMusic, Trash2 } from 'lucide-react';
+import { Play, Pause, SkipBack, SkipForward, ChevronDown, ChevronUp, Clock, FastForward, ListMusic, Trash2, FileText } from 'lucide-react';
 import { useStore } from '../store';
 import { useShallow } from 'zustand/react/shallow';
 import { getCachedAudioUrl } from '../services/downloader';
+import { splitTextWithTimestamps } from '../utils';
 import { clsx } from 'clsx';
 import { motion, AnimatePresence } from 'motion/react';
 
 export function Player() {
   const { 
     currentEpisode, 
+    setCurrentEpisode,
     isPlaying, 
     setIsPlaying, 
     progress, 
@@ -25,11 +27,13 @@ export function Player() {
     addToHistory,
     queue,
     removeFromQueue,
+    reorderQueue,
     clearQueue,
     playNext,
     settings
   } = useStore(useShallow((s) => ({
     currentEpisode: s.currentEpisode,
+    setCurrentEpisode: s.setCurrentEpisode,
     isPlaying: s.isPlaying,
     setIsPlaying: s.setIsPlaying,
     progress: s.progress,
@@ -46,6 +50,7 @@ export function Player() {
     addToHistory: s.addToHistory,
     queue: s.queue,
     removeFromQueue: s.removeFromQueue,
+    reorderQueue: s.reorderQueue,
     clearQueue: s.clearQueue,
     playNext: s.playNext,
     settings: s.settings,
@@ -57,6 +62,7 @@ export function Player() {
   const [showSpeedMenu, setShowSpeedMenu] = useState(false);
   const [showTimerMenu, setShowTimerMenu] = useState(false);
   const [showQueue, setShowQueue] = useState(false);
+  const [showNotes, setShowNotes] = useState(false);
   const lastSavedTime = useRef<number>(0);
   const hasRestoredProgress = useRef<boolean>(false);
 
@@ -421,12 +427,12 @@ export function Player() {
                   </button>
                 </div>
 
-                <div className="flex items-center justify-between w-full px-4 mb-8">
+                <div className="flex items-center justify-between w-full px-2 mb-8 gap-2">
                   <div className="relative">
                     <button 
                       onClick={() => { setShowSpeedMenu(!showSpeedMenu); setShowTimerMenu(false); }}
                       className={clsx(
-                        "flex items-center gap-2 px-5 py-3 rounded-full text-[10px] font-black uppercase tracking-widest transition-all shadow-lg",
+                        "flex items-center gap-1.5 px-4 py-3 rounded-full text-[10px] font-black uppercase tracking-widest transition-all shadow-lg",
                         playbackRate !== 1 ? "bg-accent-main text-accent-text" : "bg-white/5 text-text-muted hover:text-text-main"
                       )}
                     >
@@ -453,9 +459,22 @@ export function Player() {
 
                   <div className="relative">
                     <button 
-                      onClick={() => { setShowQueue(!showQueue); setShowSpeedMenu(false); setShowTimerMenu(false); }}
+                      onClick={() => { setShowNotes(!showNotes); setShowQueue(false); setShowSpeedMenu(false); setShowTimerMenu(false); }}
                       className={clsx(
-                        "flex items-center gap-2 px-5 py-3 rounded-full text-[10px] font-black uppercase tracking-widest transition-all shadow-lg",
+                        "flex items-center gap-1.5 px-4 py-3 rounded-full text-[10px] font-black uppercase tracking-widest transition-all shadow-lg",
+                        showNotes ? "bg-accent-main text-accent-text" : "bg-white/5 text-text-muted hover:text-text-main"
+                      )}
+                    >
+                      <FileText size={14} />
+                      Notas
+                    </button>
+                  </div>
+
+                  <div className="relative">
+                    <button 
+                      onClick={() => { setShowQueue(!showQueue); setShowNotes(false); setShowSpeedMenu(false); setShowTimerMenu(false); }}
+                      className={clsx(
+                        "flex items-center gap-1.5 px-4 py-3 rounded-full text-[10px] font-black uppercase tracking-widest transition-all shadow-lg",
                         queue.length > 0 ? "bg-accent-main text-accent-text" : "bg-white/5 text-text-muted hover:text-text-main"
                       )}
                     >
@@ -468,7 +487,7 @@ export function Player() {
                     <button 
                       onClick={() => { setShowTimerMenu(!showTimerMenu); setShowSpeedMenu(false); }}
                       className={clsx(
-                        "flex items-center gap-2 px-5 py-3 rounded-full text-[10px] font-black uppercase tracking-widest transition-all shadow-lg",
+                        "flex items-center gap-1.5 px-4 py-3 rounded-full text-[10px] font-black uppercase tracking-widest transition-all shadow-lg",
                         sleepTimer ? "bg-accent-main text-accent-text" : "bg-white/5 text-text-muted hover:text-text-main"
                       )}
                     >
@@ -500,6 +519,58 @@ export function Player() {
                   </div>
                 </div>
 
+                {/* Show Notes Overlay Drawer with Clickable Timestamps */}
+                <AnimatePresence>
+                  {showNotes && (
+                    <motion.div
+                      initial={{ y: '100%' }}
+                      animate={{ y: 0 }}
+                      exit={{ y: '100%' }}
+                      transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+                      className="absolute inset-x-0 bottom-0 top-20 bg-bg-surface/95 backdrop-blur-2xl rounded-t-3xl border-t border-white/10 z-30 flex flex-col p-6 shadow-[0_-20px_50px_rgba(0,0,0,0.5)]"
+                    >
+                      <div className="flex justify-between items-center mb-4">
+                        <h3 className="text-lg font-bold text-text-main">Notas do Episódio</h3>
+                        <button 
+                          onClick={() => setShowNotes(false)} 
+                          className="text-xs font-bold text-text-muted hover:text-text-main uppercase tracking-widest"
+                        >
+                          Fechar
+                        </button>
+                      </div>
+                      <div className="flex-1 overflow-y-auto pr-1 text-sm text-text-muted leading-relaxed whitespace-pre-wrap">
+                        {currentEpisode.description ? (
+                          splitTextWithTimestamps(currentEpisode.description).map((seg, i) =>
+                            seg.type === 'timestamp' && seg.seconds !== undefined ? (
+                              <button
+                                key={i}
+                                onClick={() => {
+                                  if (audioRef.current) {
+                                    audioRef.current.currentTime = seg.seconds!;
+                                    setProgress(seg.seconds!);
+                                  }
+                                  setIsPlaying(true);
+                                  setShowNotes(false);
+                                }}
+                                className="inline-flex items-center px-2 py-0.5 mx-0.5 rounded-md bg-accent-main/15 text-accent-main font-mono font-bold text-xs hover:bg-accent-main hover:text-accent-text transition-colors"
+                                title={`Pular para ${seg.value}`}
+                              >
+                                {seg.value}
+                              </button>
+                            ) : (
+                              <React.Fragment key={i}>{seg.value}</React.Fragment>
+                            )
+                          )
+                        ) : (
+                          <p className="text-center text-xs uppercase tracking-wider py-12 opacity-60">
+                            Sem descrição disponível para este episódio.
+                          </p>
+                        )}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
                 {/* Queue Overlay Drawer */}
                 <AnimatePresence>
                   {showQueue && (
@@ -530,7 +601,7 @@ export function Player() {
                         </div>
                       </div>
 
-                      <div className="flex-1 overflow-y-auto space-y-4 pr-1 scrollbar-thin">
+                      <div className="flex-1 overflow-y-auto space-y-3 pr-1 scrollbar-thin">
                         {queue.length === 0 ? (
                           <div className="flex flex-col items-center justify-center h-full text-text-muted text-sm gap-2">
                             <ListMusic size={32} className="opacity-40" />
@@ -539,19 +610,49 @@ export function Player() {
                         ) : (
                           queue.map((ep, idx) => (
                             <div key={ep.id + '-' + idx} className="flex items-center gap-3 bg-white/5 p-3 rounded-xl border border-white/5 group">
-                              <img 
-                                src={ep.episodeArtwork || ep.podcastArtwork} 
-                                alt={ep.title} 
-                                className="w-10 h-10 rounded-lg object-cover"
-                                referrerPolicy="no-referrer"
-                              />
-                              <div className="flex-1 min-w-0">
-                                <h4 className="text-xs font-semibold text-text-main truncate">{ep.title}</h4>
-                                <p className="text-[10px] text-text-muted truncate mt-0.5 uppercase tracking-wider font-bold">{ep.podcastName}</p>
+                              <div className="flex flex-col gap-0.5">
+                                <button
+                                  onClick={() => idx > 0 && reorderQueue(idx, idx - 1)}
+                                  disabled={idx === 0}
+                                  className="text-text-muted hover:text-text-main disabled:opacity-20 p-0.5 transition-colors"
+                                  title="Mover para cima"
+                                >
+                                  <ChevronUp size={14} />
+                                </button>
+                                <button
+                                  onClick={() => idx < queue.length - 1 && reorderQueue(idx, idx + 1)}
+                                  disabled={idx === queue.length - 1}
+                                  className="text-text-muted hover:text-text-main disabled:opacity-20 p-0.5 transition-colors"
+                                  title="Mover para baixo"
+                                >
+                                  <ChevronDown size={14} />
+                                </button>
                               </div>
+                              <button
+                                onClick={async () => {
+                                  await removeFromQueue(ep.id);
+                                  await setCurrentEpisode(ep);
+                                  setIsPlaying(true);
+                                  setShowQueue(false);
+                                }}
+                                className="flex items-center gap-3 flex-1 min-w-0 text-left"
+                                title="Tocar agora"
+                              >
+                                <img 
+                                  src={ep.episodeArtwork || ep.podcastArtwork} 
+                                  alt={ep.title} 
+                                  className="w-10 h-10 rounded-lg object-cover shrink-0"
+                                  referrerPolicy="no-referrer"
+                                />
+                                <div className="flex-1 min-w-0">
+                                  <h4 className="text-xs font-semibold text-text-main truncate group-hover:text-accent-main transition-colors">{ep.title}</h4>
+                                  <p className="text-[10px] text-text-muted truncate mt-0.5 uppercase tracking-wider font-bold">{ep.podcastName}</p>
+                                </div>
+                              </button>
                               <button 
                                 onClick={() => removeFromQueue(ep.id)}
                                 className="text-text-muted hover:text-red-500 p-2 transition-colors opacity-80 group-hover:opacity-100"
+                                title="Remover da fila"
                               >
                                 <Trash2 size={16} />
                               </button>
