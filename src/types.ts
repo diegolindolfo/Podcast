@@ -18,6 +18,7 @@ export interface Episode {
   podcastName: string;
   podcastArtwork: string;
   episodeArtwork?: string;
+  mediaType?: 'audio' | 'video';
 }
 
 export interface DownloadedEpisode extends Episode {
