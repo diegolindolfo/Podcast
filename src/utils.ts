@@ -1,4 +1,4 @@
-import { Episode, Podcast } from './types';
+import { Chapter, Episode, Podcast } from './types';
 
 export function formatDuration(duration?: string | number): string {
   if (!duration) return '';
@@ -33,30 +33,6 @@ export function formatDuration(duration?: string | number): string {
   return `${minutes} min`;
 }
 
-export function parseRssEpisode(item: any, podcast: Podcast): Episode {
-  let episodeArtwork = podcast.artworkUrl600;
-  if (item['itunes:image'] && typeof item['itunes:image'] === 'object' && item['itunes:image'].$) {
-    episodeArtwork = item['itunes:image'].$.href;
-  } else if (typeof item['itunes:image'] === 'string') {
-    episodeArtwork = item['itunes:image'];
-  } else if (item.itunes?.image) {
-    episodeArtwork = item.itunes.image;
-  }
-
-  return {
-    id: item.guid || item.link || item.title || `${podcast.collectionId}-${Date.now()}`,
-    title: item.title || 'Sem título',
-    pubDate: item.pubDate || new Date().toISOString(),
-    description: item.contentSnippet || item.content || item['itunes:summary'] || item.summary || '',
-    audioUrl: item.enclosure?.url || '',
-    duration: item['itunes:duration'],
-    podcastId: podcast.collectionId,
-    podcastName: podcast.collectionName,
-    podcastArtwork: podcast.artworkUrl600,
-    episodeArtwork
-  };
-}
-
 /** Converts a timestamp string like "1:05:30" or "15:30" into seconds. */
 export function parseTimestampToSeconds(ts: string): number | null {
   const parts = ts.trim().split(':').map(Number);
@@ -72,6 +48,83 @@ export function parseTimestampToSeconds(ts: string): number | null {
     return m * 60 + s;
   }
   return null;
+}
+
+/**
+ * Extracts chapters written in episode description/show notes.
+ * Formats supported:
+ * "00:00 - Introdução"
+ * "05:12 O início do tema"
+ * "(15:30) Conclusão"
+ */
+export function extractChaptersFromDescription(description: string): Chapter[] {
+  if (!description) return [];
+
+  const cleaned = description
+    .replace(/<\s*br\s*\/?>/gi, '\n')
+    .replace(/<\/\s*(p|div|li|h[1-6])\s*>/gi, '\n')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&nbsp;/gi, ' ');
+
+  const lines = cleaned.split('\n');
+  const chapters: Chapter[] = [];
+
+  for (const rawLine of lines) {
+    const line = rawLine.trim();
+    if (!line) continue;
+
+    // Matches timestamps at beginning or enclosed in parens/brackets
+    const match = line.match(/^(?:\[|\()?(\d{1,2}:\d{2}(?::\d{2})?)(?:\]|\))?\s*[-–—:]*\s*(.+)$/);
+    if (match) {
+      const ts = match[1];
+      const title = match[2].trim().replace(/^[-–—:]\s*/, '');
+      const seconds = parseTimestampToSeconds(ts);
+      if (seconds !== null && title.length > 0) {
+        chapters.push({
+          startTime: seconds,
+          title
+        });
+      }
+    }
+  }
+
+  // Calculate endTime based on next chapter start
+  for (let i = 0; i < chapters.length; i++) {
+    if (i + 1 < chapters.length) {
+      chapters[i].endTime = chapters[i + 1].startTime;
+    }
+  }
+
+  return chapters.sort((a, b) => a.startTime - b.startTime);
+}
+
+export function parseRssEpisode(item: any, podcast: Podcast): Episode {
+  let episodeArtwork = podcast.artworkUrl600;
+  if (item['itunes:image'] && typeof item['itunes:image'] === 'object' && item['itunes:image'].$) {
+    episodeArtwork = item['itunes:image'].$.href;
+  } else if (typeof item['itunes:image'] === 'string') {
+    episodeArtwork = item['itunes:image'];
+  } else if (item.itunes?.image) {
+    episodeArtwork = item.itunes.image;
+  }
+
+  const rawDesc = item.contentSnippet || item.content || item['itunes:summary'] || item.summary || '';
+  const descChapters = extractChaptersFromDescription(rawDesc);
+
+  return {
+    id: item.guid || item.link || item.title || `${podcast.collectionId}-${Date.now()}`,
+    title: item.title || 'Sem título',
+    pubDate: item.pubDate || new Date().toISOString(),
+    description: rawDesc,
+    audioUrl: item.enclosure?.url || '',
+    duration: item['itunes:duration'],
+    podcastId: podcast.collectionId,
+    podcastName: podcast.collectionName,
+    podcastArtwork: podcast.artworkUrl600,
+    episodeArtwork,
+    chapters: descChapters.length > 0 ? descChapters : undefined,
+    chaptersUrl: item['podcast:chapters']?.$.url || item['psc:chapters']?.$.url || undefined
+  };
 }
 
 export interface TextSegment {
@@ -139,57 +192,44 @@ function unescapeXml(str: string): string {
     .replace(/&amp;/g, '&');
 }
 
-/** Generates a standard OPML 2.0 XML document from a list of subscribed podcasts. */
-export function generateOpml(podcasts: Podcast[]): string {
-  const outlines = podcasts
-    .filter(p => p.feedUrl)
-    .map(
-      p =>
-        `      <outline type="rss" text="${escapeXml(p.collectionName)}" title="${escapeXml(p.collectionName)}" xmlUrl="${escapeXml(p.feedUrl)}" />`
-    )
+export function generateOpml(subscriptions: Podcast[]): string {
+  const dateStr = new Date().toUTCString();
+  const outlines = subscriptions
+    .map(p => `      <outline type="rss" text="${escapeXml(p.collectionName)}" title="${escapeXml(p.collectionName)}" xmlUrl="${escapeXml(p.feedUrl)}" htmlUrl="" />`)
     .join('\n');
 
   return `<?xml version="1.0" encoding="UTF-8"?>
 <opml version="2.0">
   <head>
     <title>Podcast App Subscriptions</title>
+    <dateCreated>${dateStr}</dateCreated>
   </head>
   <body>
     <outline text="feeds">
 ${outlines}
     </outline>
   </body>
-</opml>
-`;
+</opml>`;
 }
 
-export interface OpmlFeedEntry {
-  title: string;
-  xmlUrl: string;
-}
-
-/** Parses <outline ... xmlUrl="..." /> entries from an OPML XML string. */
-export function parseOpmlFeeds(xmlText: string): OpmlFeedEntry[] {
-  if (!xmlText) return [];
-  const entries: OpmlFeedEntry[] = [];
-  const seen = new Set<string>();
-  const outlineRegex = /<outline\b([^>]*)\/?>/gi;
+export function parseOpmlFeeds(opmlText: string): { title: string; xmlUrl: string }[] {
+  const feeds: { title: string; xmlUrl: string }[] = [];
+  const outlineRegex = /<outline\b([^>]+?)\/?>/gi;
   let match: RegExpExecArray | null;
 
-  while ((match = outlineRegex.exec(xmlText)) !== null) {
+  while ((match = outlineRegex.exec(opmlText)) !== null) {
     const attrs = match[1];
-    const urlMatch = attrs.match(/\bxmlUrl\s*=\s*["']([^"']+)["']/i);
-    if (!urlMatch) continue;
-    const xmlUrl = unescapeXml(urlMatch[1].trim());
-    if (!xmlUrl || seen.has(xmlUrl)) continue;
-    seen.add(xmlUrl);
+    const xmlUrlMatch = attrs.match(/xmlUrl=["']([^"']+)["']/i);
+    if (!xmlUrlMatch) continue;
 
-    const titleMatch =
-      attrs.match(/\btitle\s*=\s*["']([^"']+)["']/i) ||
-      attrs.match(/\btext\s*=\s*["']([^"']+)["']/i);
-    const title = titleMatch ? unescapeXml(titleMatch[1].trim()) : xmlUrl;
-    entries.push({ title, xmlUrl });
+    const titleMatch = attrs.match(/title=["']([^"']+)["']/i) || attrs.match(/text=["']([^"']+)["']/i);
+    const title = titleMatch ? unescapeXml(titleMatch[1].trim()) : 'Podcast';
+    const xmlUrl = unescapeXml(xmlUrlMatch[1].trim());
+
+    if (xmlUrl && !feeds.some(f => f.xmlUrl === xmlUrl)) {
+      feeds.push({ title, xmlUrl });
+    }
   }
 
-  return entries;
+  return feeds;
 }

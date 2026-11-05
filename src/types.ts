@@ -7,6 +7,14 @@ export interface Podcast {
   genreIds?: string[];
 }
 
+export interface Chapter {
+  title: string;
+  startTime: number; // in seconds
+  endTime?: number;  // in seconds
+  url?: string;
+  img?: string;
+}
+
 export interface Episode {
   id: string;
   title: string;
@@ -18,6 +26,8 @@ export interface Episode {
   podcastName: string;
   podcastArtwork: string;
   episodeArtwork?: string;
+  chapters?: Chapter[];
+  chaptersUrl?: string; // Podcasting 2.0 JSON chapters URL
 }
 
 export interface DownloadedEpisode extends Episode {
