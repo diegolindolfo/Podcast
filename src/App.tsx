@@ -4,8 +4,9 @@ import { BottomNav } from './components/BottomNav';
 import { Player } from './components/Player';
 import { useStore } from './store';
 import { Podcast } from './types';
-import { deleteDownloadedEpisode } from './services/downloader';
+import { deleteDownloadedEpisode, downloadEpisode } from './services/downloader';
 import { parseRssEpisode } from './utils';
+import { getPodcastFeed } from './services/api';
 
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -82,8 +83,6 @@ export default function App() {
 
     const checkAndDownload = async () => {
       const { subscriptions: currentSubs, downloads: currentDls } = useStore.getState();
-      const { getPodcastFeed } = await import('./services/api');
-      const { downloadEpisode } = await import('./services/downloader');
 
       for (const podcast of currentSubs) {
         try {

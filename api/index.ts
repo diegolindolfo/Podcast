@@ -284,6 +284,7 @@ apiRouter.get('/search', async (req, res) => {
     const cacheKey = `search:${q.trim().toLowerCase()}`;
     const cached = getCache(cacheKey);
     if (cached) {
+      res.setHeader('Cache-Control', 'public, s-maxage=3600, stale-while-revalidate=86400');
       return res.json(cached);
     }
 
@@ -294,6 +295,7 @@ apiRouter.get('/search', async (req, res) => {
     const data = await response.json();
 
     setCache(cacheKey, data, SEARCH_TOP_TTL);
+    res.setHeader('Cache-Control', 'public, s-maxage=3600, stale-while-revalidate=86400');
     res.json(data);
   } catch (error) {
     console.error('Search error:', error);
@@ -311,6 +313,7 @@ apiRouter.get('/feed', async (req, res) => {
     const cacheKey = `feed:${url}`;
     const cached = getCache(cacheKey);
     if (cached) {
+      res.setHeader('Cache-Control', 'public, s-maxage=900, stale-while-revalidate=3600');
       return res.json(cached);
     }
 
@@ -337,10 +340,41 @@ apiRouter.get('/feed', async (req, res) => {
       }
 
       const xml = await readTextLimited(response, MAX_FEED_BYTES);
-      const feed = await parser.parseString(xml.trim());
+      const parsedFeed = await parser.parseString(xml.trim());
 
-      setCache(cacheKey, feed, FEED_TTL);
-      res.json(feed);
+      // Sanitize & compress payload: keep only what the app needs and limit to recent 300 episodes
+      const sanitizedFeed = {
+        title: parsedFeed.title,
+        description: parsedFeed.description,
+        link: parsedFeed.link,
+        feedUrl: parsedFeed.feedUrl,
+        image: parsedFeed.image,
+        itunes: parsedFeed.itunes,
+        creator: (parsedFeed as any).creator,
+        items: (parsedFeed.items || []).slice(0, 300).map((item: any) => ({
+          guid: item.guid,
+          id: item.id,
+          title: item.title,
+          link: item.link,
+          pubDate: item.pubDate,
+          contentSnippet: item.contentSnippet,
+          content: item.contentSnippet || item.content || item['itunes:summary'] || item.summary || '',
+          summary: item.summary,
+          'itunes:summary': item['itunes:summary'],
+          'itunes:duration': item['itunes:duration'],
+          'itunes:image': item['itunes:image'],
+          itunes: item.itunes,
+          enclosure: item.enclosure ? {
+            url: item.enclosure.url,
+            type: item.enclosure.type,
+            length: item.enclosure.length
+          } : undefined
+        }))
+      };
+
+      setCache(cacheKey, sanitizedFeed, FEED_TTL);
+      res.setHeader('Cache-Control', 'public, s-maxage=900, stale-while-revalidate=3600');
+      res.json(sanitizedFeed);
     } finally {
       clearTimeout(timeout);
     }
@@ -365,6 +399,7 @@ apiRouter.get('/top', async (req, res) => {
     const cacheKey = `top:${genreParam}`;
     const cached = getCache(cacheKey);
     if (cached) {
+      res.setHeader('Cache-Control', 'public, s-maxage=3600, stale-while-revalidate=86400');
       return res.json(cached);
     }
 
@@ -377,7 +412,10 @@ apiRouter.get('/top', async (req, res) => {
     const entries = rssData.feed?.entry || [];
     const ids = entries.map((e: any) => e.id?.attributes?.['im:id']).filter(Boolean).join(',');
 
-    if (!ids) return res.json({ results: [] });
+    if (!ids) {
+      res.setHeader('Cache-Control', 'public, s-maxage=3600, stale-while-revalidate=86400');
+      return res.json({ results: [] });
+    }
 
     const lookupResponse = await fetch(`https://itunes.apple.com/lookup?id=${encodeURIComponent(ids)}&country=br`);
     if (!lookupResponse.ok) {
@@ -386,6 +424,7 @@ apiRouter.get('/top', async (req, res) => {
     const lookupData = await lookupResponse.json();
 
     setCache(cacheKey, lookupData, SEARCH_TOP_TTL);
+    res.setHeader('Cache-Control', 'public, s-maxage=3600, stale-while-revalidate=86400');
     res.json(lookupData);
   } catch (error) {
     console.error('Top podcasts error:', error);
