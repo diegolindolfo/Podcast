@@ -457,7 +457,8 @@ export function Player() {
             initial={{ opacity: 0, y: "100%" }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: "100%" }}
-            className="fixed inset-0 bg-bg-main flex flex-col p-6 z-50 pt-safe overflow-y-auto relative"
+            transition={{ type: "spring", damping: 25, stiffness: 260 }}
+            className="fixed inset-0 bg-bg-main flex flex-col p-6 z-50 pt-safe overflow-y-auto"
           >
             {/* Ambient Glow */}
             <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
@@ -476,9 +477,9 @@ export function Player() {
               </button>
               <div className="flex flex-col items-center">
                 <span className="text-[10px] font-bold text-text-muted uppercase tracking-[0.2em]">Tocando Agora</span>
-                {chapters.length > 0 && (
+                {chapters.length > 0 && currentChapter && (
                   <span className="text-[9px] font-black uppercase text-accent-main tracking-wider mt-0.5">
-                    Capítulo {chapters.indexOf(currentChapter!) + 1} de {chapters.length}
+                    Capítulo {chapters.indexOf(currentChapter) + 1} de {chapters.length}
                   </span>
                 )}
               </div>
@@ -495,7 +496,7 @@ export function Player() {
                 <img 
                   src={currentChapter?.img || currentEpisode.episodeArtwork || currentEpisode.podcastArtwork} 
                   alt="Artwork" 
-                  className="w-64 h-64 sm:w-76 sm:h-76 rounded-2xl shadow-[0_40px_80px_rgba(0,0,0,0.6)] object-cover border border-white/10"
+                  className="w-64 h-64 sm:w-72 sm:h-72 rounded-2xl shadow-[0_40px_80px_rgba(0,0,0,0.6)] object-cover border border-white/10"
                   referrerPolicy="no-referrer"
                 />
                 {isPlaying && (
