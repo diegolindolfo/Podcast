@@ -33,6 +33,37 @@ export function formatDuration(duration?: string | number): string {
   return `${minutes} min`;
 }
 
+/** Converts duration (number of seconds or HH:MM:SS / MM:SS string) into total seconds. */
+export function parseDurationToSeconds(duration?: string | number): number | null {
+  if (duration === undefined || duration === null || duration === '') return null;
+  if (typeof duration === 'number') {
+    return isFinite(duration) && duration > 0 ? duration : null;
+  }
+  const trimmed = duration.trim();
+  if (trimmed.includes(':')) {
+    return parseTimestampToSeconds(trimmed);
+  }
+  const num = Number(trimmed);
+  return isFinite(num) && num > 0 ? num : null;
+}
+
+/** Strips HTML tags and decodes common HTML entities into clean plain text for previews. */
+export function stripHtml(raw?: string): string {
+  if (!raw) return '';
+  return raw
+    .replace(/<\s*br\s*\/?>/gi, ' ')
+    .replace(/<\/\s*(p|div|li|h[1-6])\s*>/gi, ' ')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&amp;/gi, '&')
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>')
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;/gi, "'")
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 /** Converts a timestamp string like "1:05:30" or "15:30" into seconds. */
 export function parseTimestampToSeconds(ts: string): number | null {
   const parts = ts.trim().split(':').map(Number);

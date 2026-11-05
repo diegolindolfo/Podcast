@@ -156,37 +156,44 @@ export default function App() {
 
   return (
     <div className="bg-bg-main min-h-screen text-text-main font-sans">
-      <AnimatePresence mode="wait">
-        {selectedPodcast ? (
-          <motion.div
-            key="podcast-detail"
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
-            transition={{ duration: 0.2 }}
-          >
-            <Suspense fallback={<LoadingFallback />}>
-              <PodcastDetail podcast={selectedPodcast} onBack={handleBack} />
-            </Suspense>
-          </motion.div>
-        ) : (
-          <motion.div
-            key={currentTab}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.2 }}
-          >
-            <Suspense fallback={<LoadingFallback />}>
-              {currentTab === 'home' && <Home onSelectPodcast={handleSelectPodcast} />}
-              {currentTab === 'search' && <Search onSelectPodcast={handleSelectPodcast} />}
-              {currentTab === 'downloads' && <Downloads />}
-              {currentTab === 'history' && <History />}
-              {currentTab === 'settings' && <Settings />}
-            </Suspense>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <main className="max-w-4xl mx-auto">
+        <AnimatePresence mode="wait">
+          {selectedPodcast ? (
+            <motion.div
+              key="podcast-detail"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              transition={{ duration: 0.2 }}
+            >
+              <Suspense fallback={<LoadingFallback />}>
+                <PodcastDetail podcast={selectedPodcast} onBack={handleBack} />
+              </Suspense>
+            </motion.div>
+          ) : (
+            <motion.div
+              key={currentTab}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.2 }}
+            >
+              <Suspense fallback={<LoadingFallback />}>
+                {currentTab === 'home' && (
+                  <Home
+                    onSelectPodcast={handleSelectPodcast}
+                    onExplore={() => handleTabChange('search')}
+                  />
+                )}
+                {currentTab === 'search' && <Search onSelectPodcast={handleSelectPodcast} />}
+                {currentTab === 'downloads' && <Downloads />}
+                {currentTab === 'history' && <History />}
+                {currentTab === 'settings' && <Settings />}
+              </Suspense>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </main>
 
       <Player />
       <BottomNav currentTab={currentTab} onChange={handleTabChange} />

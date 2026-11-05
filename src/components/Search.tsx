@@ -130,7 +130,7 @@ export function Search({ onSelectPodcast }: SearchProps) {
   };
 
   return (
-    <div className="p-4 pb-24 min-h-screen bg-bg-main">
+    <div className="p-4 pb-36 min-h-screen bg-bg-main">
       <div className="sticky top-0 z-10 bg-bg-main/80 backdrop-blur-md pt-safe pb-4">
         <h1 className="text-3xl font-bold tracking-tight mb-4 text-text-main">Descobrir</h1>
         <form

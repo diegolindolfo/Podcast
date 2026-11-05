@@ -1,22 +1,24 @@
 import { useState } from 'react';
 import { useStore } from '../store';
 import { useShallow } from 'zustand/react/shallow';
-import { Play, Pause, Trash2, Check, X } from 'lucide-react';
+import { Play, Pause, Trash2, Check, X, CheckCircle2 } from 'lucide-react';
 import { DownloadsIcon } from './CustomIcons';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { clsx } from 'clsx';
 import { deleteDownloadedEpisode } from '../services/downloader';
-
+import { parseDurationToSeconds } from '../utils';
 import { motion, AnimatePresence } from 'motion/react';
 
 export function Downloads() {
-  const { downloads, currentEpisode, isPlaying, setIsPlaying, setCurrentEpisode } = useStore(useShallow((s) => ({
+  const { downloads, currentEpisode, isPlaying, setIsPlaying, setCurrentEpisode, savedProgress, finishedAt } = useStore(useShallow((s) => ({
     downloads: s.downloads,
     currentEpisode: s.currentEpisode,
     isPlaying: s.isPlaying,
     setIsPlaying: s.setIsPlaying,
     setCurrentEpisode: s.setCurrentEpisode,
+    savedProgress: s.savedProgress,
+    finishedAt: s.finishedAt,
   })));
   const [confirmingDelete, setConfirmingDelete] = useState<string | null>(null);
 
@@ -35,16 +37,16 @@ export function Downloads() {
   };
 
   const formatSize = (bytes?: number) => {
-    if (!bytes) return 'Tamanho desconhecido';
+    if (!bytes) return 'Salvo offline';
     const mb = bytes / (1024 * 1024);
     return `${mb.toFixed(1)} MB`;
   };
 
   return (
-    <div className="p-4 pb-24 min-h-screen bg-bg-main">
+    <div className="p-4 pb-36 min-h-screen bg-bg-main">
       <div className="pt-safe pb-6">
         <h1 className="text-3xl font-bold tracking-tight text-text-main">Downloads</h1>
-        <p className="text-text-muted text-sm mt-1">Episódios salvos offline</p>
+        <p className="text-text-muted text-sm mt-1">Episódios salvos para ouvir offline</p>
       </div>
 
       {downloads.length === 0 ? (
@@ -63,6 +65,12 @@ export function Downloads() {
             {downloads.map((episode, index) => {
               const isPlayingThis = currentEpisode?.id === episode.id && isPlaying;
               const isConfirming = confirmingDelete === episode.id;
+              const isFinished = finishedAt[episode.id] !== undefined;
+              const savedSec = savedProgress[episode.id] || 0;
+              const totalSec = parseDurationToSeconds(episode.duration);
+              const progressPct = !isFinished && savedSec > 0 && totalSec
+                ? Math.min(100, Math.round((savedSec / totalSec) * 100))
+                : 0;
               
               return (
                 <motion.div 
@@ -71,18 +79,18 @@ export function Downloads() {
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, scale: 0.95 }}
                   transition={{ delay: index * 0.05 }}
-                  className="group flex gap-4 p-4 rounded-xl bg-bg-surface hover:bg-bg-surface-hover transition-all border border-white/5 shadow-lg"
+                  className="group flex gap-4 p-4 rounded-2xl bg-bg-surface hover:bg-bg-surface-hover transition-all border border-white/5 shadow-lg relative overflow-hidden"
                 >
                   <div className="relative flex-shrink-0 w-20 h-20">
                     <img 
                       src={episode.episodeArtwork || episode.podcastArtwork} 
                       alt={episode.podcastName} 
-                      className="w-full h-full rounded-lg object-cover shadow-xl"
+                      className="w-full h-full rounded-xl object-cover shadow-xl"
                       loading="lazy"
                       referrerPolicy="no-referrer"
                     />
                     {isPlayingThis && (
-                      <div className="absolute inset-0 bg-accent-main/20 flex items-center justify-center rounded-lg backdrop-blur-[2px]">
+                      <div className="absolute inset-0 bg-accent-main/20 flex items-center justify-center rounded-xl backdrop-blur-[2px]">
                         <div className="flex gap-1 items-end h-5">
                           <div className="w-1 bg-accent-main animate-[music-bar_0.6s_ease-in-out_infinite]" />
                           <div className="w-1 bg-accent-main animate-[music-bar_0.8s_ease-in-out_infinite]" />
@@ -101,6 +109,14 @@ export function Downloads() {
                     </h3>
                     <p className="text-xs text-text-muted font-bold truncate mb-2">{episode.podcastName}</p>
                     <div className="flex items-center gap-1.5 text-[10px] font-semibold text-text-muted uppercase tracking-wide">
+                      {isFinished && (
+                        <>
+                          <span className="inline-flex items-center gap-1 text-accent-main font-bold">
+                            <CheckCircle2 size={11} /> Ouvido
+                          </span>
+                          <span>•</span>
+                        </>
+                      )}
                       <span>{formatSize(episode.size)}</span>
                       <span>•</span>
                       <span>{(() => {
@@ -150,6 +166,15 @@ export function Downloads() {
                       </motion.div>
                     )}
                   </div>
+
+                  {progressPct > 0 && (
+                    <div className="absolute bottom-0 left-0 right-0 h-1 bg-white/5">
+                      <div
+                        className="h-full bg-accent-main"
+                        style={{ width: `${progressPct}%` }}
+                      />
+                    </div>
+                  )}
                 </motion.div>
               );
             })}

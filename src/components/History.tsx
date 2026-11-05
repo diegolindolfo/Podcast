@@ -1,20 +1,22 @@
 import { useState } from 'react';
 import { useStore } from '../store';
 import { useShallow } from 'zustand/react/shallow';
-import { Play, Pause, Trash2, X, Check } from 'lucide-react';
+import { Play, Pause, Trash2, X, Check, CheckCircle2 } from 'lucide-react';
 import { HistoryIcon } from './CustomIcons';
 import { clsx } from 'clsx';
-
+import { parseDurationToSeconds } from '../utils';
 import { motion, AnimatePresence } from 'motion/react';
 
 export function History() {
-  const { history, currentEpisode, isPlaying, setIsPlaying, setCurrentEpisode, clearHistory } = useStore(useShallow((s) => ({
+  const { history, currentEpisode, isPlaying, setIsPlaying, setCurrentEpisode, clearHistory, savedProgress, finishedAt } = useStore(useShallow((s) => ({
     history: s.history,
     currentEpisode: s.currentEpisode,
     isPlaying: s.isPlaying,
     setIsPlaying: s.setIsPlaying,
     setCurrentEpisode: s.setCurrentEpisode,
     clearHistory: s.clearHistory,
+    savedProgress: s.savedProgress,
+    finishedAt: s.finishedAt,
   })));
   const [showConfirm, setShowConfirm] = useState(false);
 
@@ -28,7 +30,7 @@ export function History() {
   };
 
   return (
-    <div className="p-4 pb-24 min-h-screen bg-bg-main">
+    <div className="p-4 pb-36 min-h-screen bg-bg-main">
       <div className="pt-safe pb-6 flex justify-between items-end">
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-text-main">Histórico</h1>
@@ -88,6 +90,15 @@ export function History() {
           <AnimatePresence initial={false}>
             {history.map((episode, index) => {
               const isPlayingThis = currentEpisode?.id === episode.id && isPlaying;
+              const isFinished = finishedAt[episode.id] !== undefined;
+              const savedSec = savedProgress[episode.id] || 0;
+              const totalSec = parseDurationToSeconds(episode.duration);
+              const progressPct = !isFinished && savedSec > 0 && totalSec
+                ? Math.min(100, Math.round((savedSec / totalSec) * 100))
+                : 0;
+              const remainingMins = !isFinished && savedSec > 0 && totalSec && totalSec > savedSec
+                ? Math.max(1, Math.ceil((totalSec - savedSec) / 60))
+                : null;
               
               return (
                 <motion.div 
@@ -95,18 +106,18 @@ export function History() {
                   initial={{ opacity: 0, x: -10 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: index * 0.03 }}
-                  className="group flex gap-4 p-4 rounded-xl bg-bg-surface hover:bg-bg-surface-hover transition-all border border-white/5 shadow-lg"
+                  className="group flex gap-4 p-4 rounded-2xl bg-bg-surface hover:bg-bg-surface-hover transition-all border border-white/5 shadow-lg relative overflow-hidden"
                 >
                   <div className="relative flex-shrink-0 w-20 h-20">
                     <img 
                       src={episode.episodeArtwork || episode.podcastArtwork} 
                       alt={episode.podcastName} 
-                      className="w-full h-full rounded-lg object-cover shadow-xl"
+                      className="w-full h-full rounded-xl object-cover shadow-xl"
                       loading="lazy"
                       referrerPolicy="no-referrer"
                     />
                     {isPlayingThis && (
-                      <div className="absolute inset-0 bg-accent-main/20 flex items-center justify-center rounded-lg backdrop-blur-[2px]">
+                      <div className="absolute inset-0 bg-accent-main/20 flex items-center justify-center rounded-xl backdrop-blur-[2px]">
                         <div className="flex gap-1 items-end h-5">
                           <div className="w-1 bg-accent-main animate-[music-bar_0.6s_ease-in-out_infinite]" />
                           <div className="w-1 bg-accent-main animate-[music-bar_0.8s_ease-in-out_infinite]" />
@@ -123,7 +134,18 @@ export function History() {
                     )}>
                       {episode.title}
                     </h3>
-                    <p className="text-xs text-text-muted font-bold truncate">{episode.podcastName}</p>
+                    <p className="text-xs text-text-muted font-bold truncate mb-1">{episode.podcastName}</p>
+                    {(isFinished || remainingMins) && (
+                      <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide text-accent-main">
+                        {isFinished ? (
+                          <span className="inline-flex items-center gap-1">
+                            <CheckCircle2 size={11} /> Ouvido
+                          </span>
+                        ) : (
+                          <span>Restam {remainingMins} min</span>
+                        )}
+                      </div>
+                    )}
                   </div>
                   
                   <div className="flex items-center">
@@ -134,6 +156,15 @@ export function History() {
                       {isPlayingThis ? <Pause size={18} fill="currentColor" /> : <Play size={18} fill="currentColor" className="ml-0.5" />}
                     </button>
                   </div>
+
+                  {progressPct > 0 && (
+                    <div className="absolute bottom-0 left-0 right-0 h-1 bg-white/5">
+                      <div
+                        className="h-full bg-accent-main"
+                        style={{ width: `${progressPct}%` }}
+                      />
+                    </div>
+                  )}
                 </motion.div>
               );
             })}

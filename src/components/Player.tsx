@@ -397,34 +397,55 @@ export function Player() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 20 }}
-            className="fixed left-0 right-0 bottom-16 h-16 bg-bg-surface/95 backdrop-blur-3xl border-t border-b border-white/10 shadow-[0_-10px_35px_rgba(0,0,0,0.4)] overflow-hidden z-40 cursor-pointer flex items-center px-6"
-            onClick={() => setIsExpanded(true)}
+            className="fixed left-0 right-0 bottom-16 z-40 pointer-events-none"
           >
-            <div className="absolute bottom-0 left-0 right-0 h-1 bg-white/5">
-              <div 
-                className="h-full bg-accent-main transition-all duration-300 ease-linear"
-                style={{ width: `${(progress / (duration || 1)) * 100}%` }}
-              />
-            </div>
-            
-            <img 
-              src={currentEpisode.episodeArtwork || currentEpisode.podcastArtwork} 
-              alt="Artwork" 
-              className="w-10 h-10 rounded-lg object-cover mr-4 shadow-md"
-              referrerPolicy="no-referrer"
-            />
-            <div className="flex-1 min-w-0">
-              <h4 className="text-xs font-bold text-text-main truncate uppercase tracking-tight">{currentEpisode.title}</h4>
-              <p className="text-[9px] text-text-muted font-bold truncate uppercase tracking-widest leading-none mt-1">
-                {currentChapter ? `📍 ${currentChapter.title}` : currentEpisode.podcastName}
-              </p>
-            </div>
-            <button 
-              onClick={(e) => { e.stopPropagation(); setIsPlaying(!isPlaying); }}
-              className="w-10 h-10 rounded-full bg-accent-main text-accent-text flex items-center justify-center transition-transform hover:scale-105 active:scale-95"
+            <div
+              onClick={() => setIsExpanded(true)}
+              className="pointer-events-auto max-w-4xl mx-auto h-16 bg-bg-surface/95 backdrop-blur-3xl border-t border-b border-white/10 shadow-[0_-10px_35px_rgba(0,0,0,0.4)] overflow-hidden cursor-pointer flex items-center px-4 sm:px-6 relative"
             >
-              {isPlaying ? <Pause size={18} fill="currentColor" /> : <Play size={18} fill="currentColor" className="ml-0.5" />}
-            </button>
+              <div className="absolute bottom-0 left-0 right-0 h-1 bg-white/5">
+                <div 
+                  className="h-full bg-accent-main transition-all duration-300 ease-linear"
+                  style={{ width: `${(progress / (duration || 1)) * 100}%` }}
+                />
+              </div>
+              
+              <img 
+                src={currentEpisode.episodeArtwork || currentEpisode.podcastArtwork} 
+                alt="Artwork" 
+                className="w-10 h-10 rounded-lg object-cover mr-3.5 shadow-md shrink-0"
+                referrerPolicy="no-referrer"
+              />
+              <div className="flex-1 min-w-0 mr-2">
+                <h4 className="text-xs font-bold text-text-main truncate uppercase tracking-tight">{currentEpisode.title}</h4>
+                <p className="text-[9px] text-text-muted font-bold truncate uppercase tracking-widest leading-none mt-1">
+                  {currentChapter ? `📍 ${currentChapter.title}` : currentEpisode.podcastName}
+                </p>
+              </div>
+
+              <div className="flex items-center gap-1.5 shrink-0">
+                <button
+                  onClick={(e) => { e.stopPropagation(); skip(-(settings.skipBackward || 15)); }}
+                  className="px-2 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-[10px] font-black text-text-muted hover:text-text-main transition-colors"
+                  title={`Voltar ${settings.skipBackward || 15}s`}
+                >
+                  -{settings.skipBackward || 15}s
+                </button>
+                <button 
+                  onClick={(e) => { e.stopPropagation(); setIsPlaying(!isPlaying); }}
+                  className="w-10 h-10 rounded-full bg-accent-main text-accent-text flex items-center justify-center transition-transform hover:scale-105 active:scale-95 shadow-md"
+                >
+                  {isPlaying ? <Pause size={18} fill="currentColor" /> : <Play size={18} fill="currentColor" className="ml-0.5" />}
+                </button>
+                <button
+                  onClick={(e) => { e.stopPropagation(); skip(settings.skipForward || 30); }}
+                  className="px-2 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-[10px] font-black text-text-muted hover:text-text-main transition-colors"
+                  title={`Avançar ${settings.skipForward || 30}s`}
+                >
+                  +{settings.skipForward || 30}s
+                </button>
+              </div>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
@@ -436,9 +457,20 @@ export function Player() {
             initial={{ opacity: 0, y: "100%" }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: "100%" }}
-            className="fixed inset-0 bg-bg-main flex flex-col p-6 z-50 pt-safe overflow-y-auto"
+            className="fixed inset-0 bg-bg-main flex flex-col p-6 z-50 pt-safe overflow-y-auto relative"
           >
-            <div className="flex justify-between items-center mb-6 shrink-0">
+            {/* Ambient Glow */}
+            <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
+              <img
+                src={currentChapter?.img || currentEpisode.episodeArtwork || currentEpisode.podcastArtwork}
+                alt=""
+                className="w-full h-full object-cover blur-3xl opacity-20 scale-125"
+                referrerPolicy="no-referrer"
+              />
+              <div className="absolute inset-0 bg-gradient-to-b from-bg-main/40 via-bg-main/80 to-bg-main" />
+            </div>
+
+            <div className="relative z-10 flex justify-between items-center mb-6 shrink-0 max-w-lg mx-auto w-full">
               <button onClick={() => setIsExpanded(false)} className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center text-text-muted hover:text-text-main transition-colors">
                 <ChevronDown size={24} />
               </button>
@@ -453,7 +485,7 @@ export function Player() {
               <div className="w-12" />
             </div>
 
-            <div className="flex-1 flex flex-col items-center justify-center max-w-sm mx-auto w-full">
+            <div className="relative z-10 flex-1 flex flex-col items-center justify-center max-w-sm mx-auto w-full">
               <motion.div
                 initial={{ scale: 0.8, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
@@ -463,7 +495,7 @@ export function Player() {
                 <img 
                   src={currentChapter?.img || currentEpisode.episodeArtwork || currentEpisode.podcastArtwork} 
                   alt="Artwork" 
-                  className="w-72 h-72 sm:w-80 sm:h-80 rounded-2xl shadow-[0_40px_80px_rgba(0,0,0,0.5)] object-cover border border-white/5"
+                  className="w-64 h-64 sm:w-76 sm:h-76 rounded-2xl shadow-[0_40px_80px_rgba(0,0,0,0.6)] object-cover border border-white/10"
                   referrerPolicy="no-referrer"
                 />
                 {isPlaying && (
@@ -493,9 +525,9 @@ export function Player() {
                 )}
               </div>
 
-              {/* Barra de Progresso com Marcadores de Capítulos */}
+              {/* Barra de Progresso com Marcadores de Capítulos e Thumb Visível */}
               <div className="w-full mb-8 px-2">
-                <div className="relative h-4 flex items-center mb-3">
+                <div className="relative h-6 flex items-center mb-2 group">
                   <input 
                     type="range" 
                     min={0} 
@@ -504,10 +536,10 @@ export function Player() {
                     onChange={handleSeek}
                     className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20"
                   />
-                  <div className="w-full h-3 bg-white/5 rounded-full overflow-hidden relative">
+                  <div className="w-full h-2.5 bg-white/10 rounded-full overflow-hidden relative">
                     <div 
                       className="h-full bg-accent-main transition-all duration-150 ease-out"
-                      style={{ width: `${(progress / (duration || 1)) * 100}%` }}
+                      style={{ width: `${Math.min(100, (progress / (duration || 1)) * 100)}%` }}
                     />
                     {/* Marcadores visuais de início de capítulo */}
                     {duration > 0 && chapters.map((chap, idx) => {
@@ -517,35 +549,40 @@ export function Player() {
                       return (
                         <div
                           key={idx}
-                          className="absolute top-0 bottom-0 w-0.5 bg-black/60 pointer-events-none"
+                          className="absolute top-0 bottom-0 w-0.5 bg-black/70 pointer-events-none"
                           style={{ left: `${pct}%` }}
                           title={chap.title}
                         />
                       );
                     })}
                   </div>
+                  {/* Thumb interativo */}
+                  <div
+                    className="absolute w-4 h-4 rounded-full bg-accent-main shadow-lg ring-2 ring-white/30 pointer-events-none transition-transform group-hover:scale-125"
+                    style={{ left: `calc(${Math.min(100, (progress / (duration || 1)) * 100)}% - 8px)` }}
+                  />
                 </div>
                 <div className="flex justify-between text-[10px] font-black tracking-widest text-text-muted uppercase">
-                  <span className="bg-white/5 px-2 py-1 rounded-full">{formatTime(progress)}</span>
-                  <span className="bg-black/40 text-text-muted px-2 py-1 rounded-full">{formatTime(duration)}</span>
+                  <span className="bg-white/5 px-2.5 py-1 rounded-full">{formatTime(progress)}</span>
+                  <span className="bg-white/5 text-text-muted px-2.5 py-1 rounded-full">-{formatTime(Math.max(0, (duration || 0) - progress))}</span>
                 </div>
               </div>
 
               {/* Controles de Reprodução */}
-              <div className="flex items-center justify-center space-x-6 w-full mb-8">
+              <div className="flex items-center justify-center space-x-5 sm:space-x-6 w-full mb-8">
                 {/* Pular para Capítulo Anterior */}
                 <button 
                   onClick={skipToPreviousChapter} 
                   title={chapters.length > 0 ? "Capítulo anterior" : "Voltar 15s"}
-                  className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center text-text-muted hover:text-text-main transition-all hover:scale-110 active:scale-90"
+                  className="w-11 h-11 rounded-full bg-white/5 flex items-center justify-center text-text-muted hover:text-text-main transition-all hover:scale-110 active:scale-90"
                 >
-                  <SkipBack size={20} fill="currentColor" />
+                  <SkipBack size={18} fill="currentColor" />
                 </button>
 
                 {/* Voltar X segundos */}
                 <button 
                   onClick={() => skip(-(settings.skipBackward || 15))} 
-                  className="text-[11px] font-black text-text-muted hover:text-text-main px-2 py-1 rounded bg-white/5"
+                  className="text-[11px] font-black text-text-muted hover:text-text-main px-2.5 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 transition-colors"
                   title={`Voltar ${settings.skipBackward || 15}s`}
                 >
                   -{settings.skipBackward || 15}s
@@ -554,7 +591,7 @@ export function Player() {
                 {/* Play / Pause Principal */}
                 <button 
                   onClick={() => setIsPlaying(!isPlaying)}
-                  className="w-20 h-20 flex items-center justify-center bg-accent-main text-accent-text rounded-full hover:scale-105 active:scale-95 transition-all shadow-xl"
+                  className="w-20 h-20 flex items-center justify-center bg-accent-main text-accent-text rounded-full hover:scale-105 active:scale-95 transition-all shadow-xl shrink-0"
                 >
                   {isPlaying ? <Pause size={30} fill="currentColor" /> : <Play size={30} fill="currentColor" className="ml-1" />}
                 </button>
@@ -562,7 +599,7 @@ export function Player() {
                 {/* Avançar X segundos */}
                 <button 
                   onClick={() => skip(settings.skipForward || 30)} 
-                  className="text-[11px] font-black text-text-muted hover:text-text-main px-2 py-1 rounded bg-white/5"
+                  className="text-[11px] font-black text-text-muted hover:text-text-main px-2.5 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 transition-colors"
                   title={`Avançar ${settings.skipForward || 30}s`}
                 >
                   +{settings.skipForward || 30}s
@@ -572,14 +609,14 @@ export function Player() {
                 <button 
                   onClick={skipToNextChapter} 
                   title={chapters.length > 0 ? "Próximo capítulo" : "Avançar 30s"}
-                  className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center text-text-muted hover:text-text-main transition-all hover:scale-110 active:scale-90"
+                  className="w-11 h-11 rounded-full bg-white/5 flex items-center justify-center text-text-muted hover:text-text-main transition-all hover:scale-110 active:scale-90"
                 >
-                  <SkipForward size={20} fill="currentColor" />
+                  <SkipForward size={18} fill="currentColor" />
                 </button>
               </div>
 
-              {/* Botões Auxiliares de Navegação */}
-              <div className="flex items-center justify-between w-full px-2 mb-6 gap-2">
+              {/* Botões Auxiliares de Navegação (Flex Wrap Responsivo) */}
+              <div className="flex flex-wrap items-center justify-center gap-2 w-full px-1 mb-6">
                 {/* Velocidade */}
                 <div className="relative">
                   <button 

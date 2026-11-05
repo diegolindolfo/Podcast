@@ -81,6 +81,7 @@ interface PlayerState {
   updateSettings: (settings: Partial<PlayerState['settings']>) => Promise<void>;
   loadSettings: () => Promise<void>;
   markEpisodeFinished: (episodeId: string) => Promise<void>;
+  toggleEpisodeFinished: (episodeId: string) => Promise<void>;
   loadFinishedAt: () => Promise<void>;
 }
 
@@ -321,6 +322,20 @@ export const useStore = create<PlayerState>((setStore, getStore) => ({
     const updated = trimRecord({ ...rest, [episodeId]: Date.now() }, MAX_FINISHED_AT);
     await set('finishedAt', updated);
     setStore({ finishedAt: updated });
+  },
+
+  toggleEpisodeFinished: async (episodeId) => {
+    const currentFinished = getStore().finishedAt;
+    if (currentFinished[episodeId] !== undefined) {
+      const { [episodeId]: _removed, ...rest } = currentFinished;
+      await set('finishedAt', rest);
+      setStore({ finishedAt: rest });
+    } else {
+      const updated = trimRecord({ ...currentFinished, [episodeId]: Date.now() }, MAX_FINISHED_AT);
+      await set('finishedAt', updated);
+      setStore({ finishedAt: updated });
+      await getStore().saveEpisodeProgress(episodeId, 0);
+    }
   },
 
   loadFinishedAt: async () => {

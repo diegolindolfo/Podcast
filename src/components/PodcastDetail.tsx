@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ChevronLeft, Play, Pause, Download, Check, Loader2, Plus, Search as SearchIcon, X } from 'lucide-react';
+import { ChevronLeft, Play, Pause, Download, Check, Plus, Search as SearchIcon, X, CheckCircle2 } from 'lucide-react';
 import { Podcast, Episode } from '../types';
 import { getPodcastFeed } from '../services/api';
 import { useStore } from '../store';
@@ -8,7 +8,7 @@ import { downloadEpisode, deleteDownloadedEpisode } from '../services/downloader
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { clsx } from 'clsx';
-import { formatDuration, parseRssEpisode } from '../utils';
+import { formatDuration, parseDurationToSeconds, parseRssEpisode, stripHtml } from '../utils';
 
 interface PodcastDetailProps {
   podcast: Podcast;
@@ -20,6 +20,7 @@ export function PodcastDetail({ podcast, onBack }: PodcastDetailProps) {
   const [visibleCount, setVisibleCount] = useState(50);
   const [loading, setLoading] = useState(true);
   const [description, setDescription] = useState('');
+  const [descExpanded, setDescExpanded] = useState(false);
   const [downloadProgress, setDownloadProgress] = useState<Record<string, number>>({});
   const [sortBy, setSortBy] = useState<'newest' | 'oldest'>('newest');
   const [filterBy, setFilterBy] = useState<'all' | 'unheard' | 'downloaded'>('all');
@@ -39,7 +40,9 @@ export function PodcastDetail({ podcast, onBack }: PodcastDetailProps) {
     setPodcastLatestEpisode,
     addToQueue,
     queue,
-    finishedAt
+    savedProgress,
+    finishedAt,
+    toggleEpisodeFinished
   } = useStore(useShallow((s) => ({
     currentEpisode: s.currentEpisode,
     isPlaying: s.isPlaying,
@@ -54,7 +57,9 @@ export function PodcastDetail({ podcast, onBack }: PodcastDetailProps) {
     setPodcastLatestEpisode: s.setPodcastLatestEpisode,
     addToQueue: s.addToQueue,
     queue: s.queue,
+    savedProgress: s.savedProgress,
     finishedAt: s.finishedAt,
+    toggleEpisodeFinished: s.toggleEpisodeFinished,
   })));
 
   const isSubscribed = subscriptions.some(p => p.collectionId === podcast.collectionId);
@@ -70,7 +75,7 @@ export function PodcastDetail({ podcast, onBack }: PodcastDetailProps) {
         const feed = await getPodcastFeed(podcast.feedUrl);
         if (!active) return;
         
-        setDescription(feed.description || '');
+        setDescription(stripHtml(feed.description || ''));
         
         const eps: Episode[] = feed.items
           .map((item: any) => parseRssEpisode(item, podcast))
@@ -82,7 +87,6 @@ export function PodcastDetail({ podcast, onBack }: PodcastDetailProps) {
           const latestDate = new Date(eps[0].pubDate).getTime();
           if (!isNaN(latestDate)) {
             setPodcastLatestEpisode(podcast.collectionId, latestDate);
-            // Update last viewed to be at least the latest episode date to clear the dot
             setPodcastLastViewed(podcast.collectionId, Math.max(Date.now(), latestDate));
           }
         }
@@ -95,7 +99,7 @@ export function PodcastDetail({ podcast, onBack }: PodcastDetailProps) {
     
     fetchFeed();
     return () => { active = false; };
-  }, [podcast.feedUrl]);
+  }, [podcast.feedUrl, podcast, setPodcastLatestEpisode, setPodcastLastViewed]);
 
   const handlePlay = async (episode: Episode) => {
     if (currentEpisode?.id === episode.id) {
@@ -137,7 +141,7 @@ export function PodcastDetail({ podcast, onBack }: PodcastDetailProps) {
   };
 
   return (
-    <div className="min-h-screen bg-bg-main text-text-main pb-24 relative">
+    <div className="min-h-screen bg-bg-main text-text-main pb-36 relative">
       {/* Header */}
       <div className="sticky top-0 z-30 glass border-b border-border-subtle pt-safe">
         <div className="flex items-center p-4">
@@ -156,24 +160,24 @@ export function PodcastDetail({ podcast, onBack }: PodcastDetailProps) {
           <img 
             src={podcast.artworkUrl600} 
             alt={podcast.collectionName} 
-            className="w-48 h-48 sm:w-40 sm:h-40 rounded-xl shadow-2xl object-cover border border-white/5"
+            className="w-44 h-44 sm:w-40 sm:h-40 rounded-2xl shadow-2xl object-cover border border-white/5"
             referrerPolicy="no-referrer"
           />
           
           <div className="flex-1 text-center sm:text-left flex flex-col justify-center">
-            <h1 className="text-3xl font-black mb-1 leading-tight tracking-tight">{podcast.collectionName}</h1>
+            <h1 className="text-2xl sm:text-3xl font-black mb-1 leading-tight tracking-tight">{podcast.collectionName}</h1>
             <p className="text-text-muted font-bold text-sm mb-4">{podcast.artistName}</p>
             
             <button 
               onClick={toggleSubscription}
               className={clsx(
-                "px-8 py-3 rounded-xl text-xs uppercase tracking-wider font-black transition-all hover:scale-105 active:scale-95 shadow-lg inline-self-center sm:inline-self-start",
+                "px-8 py-3 rounded-xl text-xs uppercase tracking-wider font-black transition-all hover:scale-105 active:scale-95 shadow-lg self-center sm:self-start",
                 isSubscribed 
-                  ? "bg-white/5 text-text-muted border border-white/5" 
+                  ? "bg-white/5 text-text-muted border border-white/10" 
                   : "bg-accent-main text-accent-text"
               )}
             >
-              {isSubscribed ? "Inscrito" : "Inscrever-se"}
+              {isSubscribed ? "✓ Inscrito" : "Inscrever-se"}
             </button>
           </div>
         </div>
@@ -181,9 +185,20 @@ export function PodcastDetail({ podcast, onBack }: PodcastDetailProps) {
         {description && (
           <div className="mt-6">
             <h3 className="text-xs font-bold uppercase text-text-muted mb-2">Sobre</h3>
-            <p className="text-text-muted text-sm leading-relaxed line-clamp-3 hover:line-clamp-none cursor-pointer">
+            <p className={clsx(
+              "text-text-muted text-sm leading-relaxed",
+              !descExpanded && "line-clamp-3"
+            )}>
               {description}
             </p>
+            {description.length > 180 && (
+              <button
+                onClick={() => setDescExpanded(!descExpanded)}
+                className="mt-1.5 text-xs font-bold text-accent-main hover:underline"
+              >
+                {descExpanded ? 'Mostrar menos' : 'Ler mais'}
+              </button>
+            )}
           </div>
         )}
       </div>
@@ -219,7 +234,7 @@ export function PodcastDetail({ podcast, onBack }: PodcastDetailProps) {
             <>
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-bold">Episódios</h2>
-                <span className="text-xs text-text-muted">
+                <span className="text-xs font-bold text-text-muted bg-bg-surface px-2.5 py-1 rounded-full border border-white/5">
                   {filteredAndSortedEpisodes.length !== episodes.length 
                     ? `${filteredAndSortedEpisodes.length} de ${episodes.length}` 
                     : episodes.length}
@@ -236,7 +251,7 @@ export function PodcastDetail({ podcast, onBack }: PodcastDetailProps) {
                       value={episodeQuery}
                       onChange={(e) => { setEpisodeQuery(e.target.value); setVisibleCount(50); }}
                       placeholder="Buscar episódio por título ou assunto..."
-                      className="w-full bg-white/5 border border-white/5 rounded-2xl pl-10 pr-10 py-2.5 text-xs text-text-main placeholder:text-text-muted focus:outline-none focus:border-accent-main/50 transition-colors"
+                      className="w-full bg-bg-surface border border-white/5 rounded-2xl pl-10 pr-10 py-3 text-xs text-text-main placeholder:text-text-muted focus:outline-none focus:border-accent-main/50 transition-colors"
                     />
                     {episodeQuery && (
                       <button
@@ -249,8 +264,8 @@ export function PodcastDetail({ podcast, onBack }: PodcastDetailProps) {
                     )}
                   </div>
 
-                  {/* Filtro e Ordenação em Linha com visual moderno */}
-                  <div className="flex flex-wrap gap-3 justify-between items-center bg-white/5 p-2 rounded-2xl border border-white/5">
+                  {/* Filtro e Ordenação */}
+                  <div className="flex flex-wrap gap-2 justify-between items-center bg-bg-surface p-2 rounded-2xl border border-white/5">
                     <div className="flex items-center gap-1 bg-black/20 p-1 rounded-xl">
                       <button
                         onClick={() => setFilterBy('all')}
@@ -306,9 +321,21 @@ export function PodcastDetail({ podcast, onBack }: PodcastDetailProps) {
               )}
 
               {loading ? (
-                <div className="flex flex-col items-center justify-center py-20 gap-4">
-                  <Loader2 className="animate-spin text-accent-main" size={24} />
-                  <p className="text-xs text-text-muted">Carregando...</p>
+                <div className="space-y-4 py-2">
+                  {[1, 2, 3, 4].map((i) => (
+                    <div key={i} className="py-4 flex gap-4 border-b border-white/5 animate-pulse">
+                      <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-xl bg-bg-surface shrink-0" />
+                      <div className="flex-1 space-y-2.5 py-1">
+                        <div className="h-2.5 bg-bg-surface rounded w-24" />
+                        <div className="h-4 bg-bg-surface rounded w-4/5" />
+                        <div className="h-3 bg-bg-surface rounded w-full" />
+                        <div className="flex gap-3 pt-2">
+                          <div className="h-9 w-24 bg-bg-surface rounded-xl" />
+                          <div className="h-9 w-9 bg-bg-surface rounded-xl" />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               ) : filteredAndSortedEpisodes.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-20 text-center">
@@ -319,11 +346,24 @@ export function PodcastDetail({ podcast, onBack }: PodcastDetailProps) {
                   {filteredAndSortedEpisodes.slice(0, visibleCount).map((episode) => {
                     const isPlayingThis = currentEpisode?.id === episode.id && isPlaying;
                     const isDownloaded = downloads.some(d => d.id === episode.id);
+                    const isFinished = finishedAt[episode.id] !== undefined;
+                    const savedSec = savedProgress[episode.id] || 0;
+                    const totalSec = parseDurationToSeconds(episode.duration);
+                    const progressPct = !isFinished && savedSec > 0 && totalSec
+                      ? Math.min(100, Math.round((savedSec / totalSec) * 100))
+                      : 0;
+                    const remainingMins = !isFinished && savedSec > 0 && totalSec && totalSec > savedSec
+                      ? Math.max(1, Math.ceil((totalSec - savedSec) / 60))
+                      : null;
+                    const cleanDesc = stripHtml(episode.description);
                     
                     return (
                       <div 
                         key={episode.id} 
-                        className="py-5 flex gap-4 group border-b border-white/5 last:border-0 items-start"
+                        className={clsx(
+                          "py-5 flex gap-4 group border-b border-white/5 last:border-0 items-start transition-opacity",
+                          isFinished && !isPlayingThis && "opacity-60 hover:opacity-100"
+                        )}
                       >
                         {/* Capa do Episódio */}
                         <div className="relative w-20 h-20 sm:w-24 sm:h-24 shrink-0 rounded-xl overflow-hidden bg-bg-surface border border-white/5 shadow-md">
@@ -343,10 +383,23 @@ export function PodcastDetail({ podcast, onBack }: PodcastDetailProps) {
                               </div>
                             </div>
                           )}
+                          {progressPct > 0 && (
+                            <div className="absolute bottom-0 left-0 right-0 h-1 bg-black/50">
+                              <div
+                                className="h-full bg-accent-main"
+                                style={{ width: `${progressPct}%` }}
+                              />
+                            </div>
+                          )}
                         </div>
 
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-1.5 text-[11px] font-semibold text-text-muted mb-1.5 uppercase tracking-wide">
+                          <div className="flex flex-wrap items-center gap-1.5 text-[11px] font-semibold text-text-muted mb-1.5 uppercase tracking-wide">
+                            {isFinished && (
+                              <span className="inline-flex items-center gap-1 text-accent-main font-bold">
+                                <CheckCircle2 size={12} /> Ouvido •
+                              </span>
+                            )}
                             {episode.pubDate && (
                               <span>
                                 {(() => {
@@ -357,34 +410,38 @@ export function PodcastDetail({ podcast, onBack }: PodcastDetailProps) {
                               </span>
                             )}
                             
-                            {episode.pubDate && episode.duration && <span>•</span>}
+                            {episode.pubDate && (episode.duration || remainingMins) && <span>•</span>}
 
-                            {episode.duration && (
+                            {remainingMins ? (
+                              <span className="text-accent-main font-bold">Restam {remainingMins} min</span>
+                            ) : episode.duration ? (
                               <span>{formatDuration(episode.duration)}</span>
-                            )}
+                            ) : null}
                           </div>
                           <h3 className={clsx(
-                            "font-semibold text-base leading-snug mb-2 line-clamp-2 transition-colors",
+                            "font-semibold text-base leading-snug mb-1.5 line-clamp-2 transition-colors",
                             currentEpisode?.id === episode.id ? "text-accent-main" : "text-text-main group-hover:text-accent-main"
                           )}>
                             {episode.title}
                           </h3>
-                          <p className="text-xs text-text-muted line-clamp-2 mb-4 leading-relaxed">
-                            {episode.description}
-                          </p>
+                          {cleanDesc && (
+                            <p className="text-xs text-text-muted line-clamp-2 mb-4 leading-relaxed">
+                              {cleanDesc}
+                            </p>
+                          )}
                           
-                          <div className="flex items-center gap-4">
+                          <div className="flex items-center gap-2.5 sm:gap-3">
                             <button 
                               onClick={() => handlePlay(episode)}
                               className={clsx(
-                                "flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all hover:scale-105 active:scale-95 shadow-md",
+                                "flex items-center gap-2 px-4 sm:px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all hover:scale-105 active:scale-95 shadow-md",
                                 isPlayingThis 
                                   ? "bg-accent-main text-accent-text" 
                                   : "bg-white/5 text-text-muted hover:bg-white/10 hover:text-text-main"
                               )}
                             >
                               {isPlayingThis ? <Pause size={14} fill="currentColor" /> : <Play size={14} fill="currentColor" className="ml-0.5" />}
-                              {isPlayingThis ? 'Pausar' : 'Ouvir'}
+                              {isPlayingThis ? 'Pausar' : savedSec > 0 && !isFinished ? 'Continuar' : 'Ouvir'}
                             </button>
 
                             <button 
@@ -400,15 +457,29 @@ export function PodcastDetail({ podcast, onBack }: PodcastDetailProps) {
                             >
                               <Plus size={16} />
                             </button>
+
+                            <button
+                              onClick={() => toggleEpisodeFinished(episode.id)}
+                              className={clsx(
+                                "flex items-center justify-center w-10 h-10 rounded-xl transition-all hover:scale-110 active:scale-95 shadow-md",
+                                isFinished
+                                  ? "bg-accent-main/15 text-accent-main"
+                                  : "bg-white/5 text-text-muted hover:bg-white/10 hover:text-text-main"
+                              )}
+                              title={isFinished ? "Marcar como não ouvido" : "Marcar como ouvido"}
+                            >
+                              <CheckCircle2 size={16} />
+                            </button>
        
                             <div className="ml-auto">
                               {downloadProgress[episode.id] !== undefined ? (
                                 <div className="text-[10px] font-black text-accent-main uppercase tracking-widest bg-accent-main/10 px-3 py-1.5 rounded-xl animate-pulse">
-                                  {downloadProgress[episode.id]}% Baixando
+                                  {downloadProgress[episode.id]}%
                                 </div>
                               ) : (
                                 <button 
                                   onClick={() => handleDownload(episode, isDownloaded)}
+                                  title={isDownloaded ? "Remover download" : "Baixar episódio"}
                                   className={clsx(
                                     "w-10 h-10 rounded-xl flex items-center justify-center transition-all hover:scale-110 active:scale-95",
                                     isDownloaded 
@@ -430,9 +501,9 @@ export function PodcastDetail({ podcast, onBack }: PodcastDetailProps) {
                     <div className="flex justify-center py-8">
                       <button
                         onClick={() => setVisibleCount(prev => prev + 50)}
-                        className="px-6 py-2 rounded-full border border-border-subtle text-text-muted text-xs font-semibold"
+                        className="px-6 py-2.5 rounded-xl bg-bg-surface border border-white/10 text-text-main hover:border-accent-main/40 text-xs font-bold transition-all"
                       >
-                        Ver mais
+                        Carregar mais episódios
                       </button>
                     </div>
                   )}

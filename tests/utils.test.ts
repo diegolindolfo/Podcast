@@ -2,6 +2,8 @@ import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   formatDuration,
+  parseDurationToSeconds,
+  stripHtml,
   parseRssEpisode,
   parseTimestampToSeconds,
   splitTextWithTimestamps,
@@ -29,6 +31,19 @@ describe('Utils', () => {
     test('trata entradas vazias ou indefinidas', () => {
       assert.equal(formatDuration(undefined), '');
       assert.equal(formatDuration(''), '');
+    });
+
+    test('parseDurationToSeconds converte segundos e HH:MM:SS', () => {
+      assert.equal(parseDurationToSeconds(3600), 3600);
+      assert.equal(parseDurationToSeconds('5317'), 5317);
+      assert.equal(parseDurationToSeconds('01:30:00'), 5400);
+      assert.equal(parseDurationToSeconds('25:10'), 1510);
+      assert.equal(parseDurationToSeconds(undefined), null);
+    });
+
+    test('stripHtml remove tags HTML e entidades', () => {
+      assert.equal(stripHtml('<p>Olá&nbsp;<b>mundo</b> &amp; amigos!</p>'), 'Olá mundo & amigos!');
+      assert.equal(stripHtml(''), '');
     });
   });
 
