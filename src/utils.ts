@@ -43,24 +43,17 @@ export function parseRssEpisode(item: any, podcast: Podcast): Episode {
     episodeArtwork = item.itunes.image;
   }
 
-  const rawUrl: string = item.enclosure?.url || '';
-  const enclosureType: string = (item.enclosure?.type || '').toLowerCase();
-  const isVideo =
-    enclosureType.startsWith('video/') ||
-    /\.(mp4|m4v|mov|webm|mkv)(\?.*)?$/i.test(rawUrl);
-
   return {
     id: item.guid || item.link || item.title || `${podcast.collectionId}-${Date.now()}`,
     title: item.title || 'Sem título',
     pubDate: item.pubDate || new Date().toISOString(),
     description: item.contentSnippet || item.content || item['itunes:summary'] || item.summary || '',
-    audioUrl: rawUrl,
+    audioUrl: item.enclosure?.url || '',
     duration: item['itunes:duration'],
     podcastId: podcast.collectionId,
     podcastName: podcast.collectionName,
     podcastArtwork: podcast.artworkUrl600,
-    episodeArtwork,
-    mediaType: isVideo ? 'video' : 'audio'
+    episodeArtwork
   };
 }
 

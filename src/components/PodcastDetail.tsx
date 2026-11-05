@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ChevronLeft, Play, Pause, Download, Check, Loader2, Plus, Search as SearchIcon, X, Video } from 'lucide-react';
+import { ChevronLeft, Play, Pause, Download, Check, Loader2, Plus, Search as SearchIcon, X } from 'lucide-react';
 import { Podcast, Episode } from '../types';
 import { getPodcastFeed } from '../services/api';
 import { useStore } from '../store';
@@ -347,13 +347,6 @@ export function PodcastDetail({ podcast, onBack }: PodcastDetailProps) {
 
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-1.5 text-[11px] font-semibold text-text-muted mb-1.5 uppercase tracking-wide">
-                            {episode.mediaType === 'video' && (
-                              <span className="inline-flex items-center gap-1 bg-accent-main/15 text-accent-main px-1.5 py-0.5 rounded font-black text-[9px] tracking-wider">
-                                <Video size={10} />
-                                Vídeo
-                              </span>
-                            )}
-                            {episode.mediaType === 'video' && episode.pubDate && <span>•</span>}
                             {episode.pubDate && (
                               <span>
                                 {(() => {

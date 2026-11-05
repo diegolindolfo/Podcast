@@ -58,30 +58,7 @@ describe('Utils', () => {
       assert.equal(episode.podcastId, 12345);
       assert.equal(episode.podcastName, 'Podcast de Teste');
       assert.equal(episode.podcastArtwork, 'https://example.com/cover600.jpg');
-      assert.equal(episode.mediaType, 'audio');
-    });
-
-    test('detecta podcast em vídeo por enclosure type ou extensão .mp4', () => {
-      const videoItem1 = {
-        guid: 'vid-001',
-        title: 'Videocast Especial',
-        enclosure: {
-          url: 'https://example.com/video.mp4',
-          type: 'video/mp4'
-        }
-      };
-      const ep1 = parseRssEpisode(videoItem1, mockPodcast);
-      assert.equal(ep1.mediaType, 'video');
-
-      const videoItem2 = {
-        guid: 'vid-002',
-        title: 'Videocast M4V',
-        enclosure: {
-          url: 'https://example.com/vodcast.m4v?token=123'
-        }
-      };
-      const ep2 = parseRssEpisode(videoItem2, mockPodcast);
-      assert.equal(ep2.mediaType, 'video');
+      assert.equal(episode.episodeArtwork, 'https://example.com/cover600.jpg');
     });
 
     test('respeita artwork específico do episódio', () => {

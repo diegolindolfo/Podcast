@@ -1,8 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { 
-  Play, Pause, SkipBack, SkipForward, ChevronDown, Clock, FastForward, 
-  ListMusic, Trash2, FileText, Video, Eye, EyeOff, PictureInPicture2 
-} from 'lucide-react';
+import { Play, Pause, SkipBack, SkipForward, ChevronDown, ChevronUp, Clock, FastForward, ListMusic, Trash2, FileText } from 'lucide-react';
 import { useStore } from '../store';
 import { useShallow } from 'zustand/react/shallow';
 import { getCachedAudioUrl } from '../services/downloader';
@@ -59,18 +56,15 @@ export function Player() {
     settings: s.settings,
   })));
   
-  const mediaRef = useRef<HTMLVideoElement>(null);
+  const audioRef = useRef<HTMLAudioElement>(null);
   const [isExpanded, setIsExpanded] = useState(false);
   const [audioSrc, setAudioSrc] = useState<string | null>(null);
   const [showSpeedMenu, setShowSpeedMenu] = useState(false);
   const [showTimerMenu, setShowTimerMenu] = useState(false);
   const [showQueue, setShowQueue] = useState(false);
   const [showNotes, setShowNotes] = useState(false);
-  const [isVideoHidden, setIsVideoHidden] = useState(false);
   const lastSavedTime = useRef<number>(0);
   const hasRestoredProgress = useRef<boolean>(false);
-
-  const isVideoEpisode = currentEpisode?.mediaType === 'video';
 
   // Media Session API for Android / OS media controls
   useEffect(() => {
@@ -90,8 +84,8 @@ export function Player() {
       });
 
       const skipTime = (amount: number) => {
-        if (mediaRef.current) {
-          mediaRef.current.currentTime = Math.max(0, Math.min(mediaRef.current.currentTime + amount, mediaRef.current.duration));
+        if (audioRef.current) {
+          audioRef.current.currentTime = Math.max(0, Math.min(audioRef.current.currentTime + amount, audioRef.current.duration));
           updatePositionState();
         }
       };
@@ -108,8 +102,8 @@ export function Player() {
 
       try {
         navigator.mediaSession.setActionHandler('seekto', (details) => {
-          if (details.seekTime !== undefined && mediaRef.current) {
-            mediaRef.current.currentTime = details.seekTime;
+          if (details.seekTime !== undefined && audioRef.current) {
+            audioRef.current.currentTime = details.seekTime;
             updatePositionState();
           }
         });
@@ -120,8 +114,8 @@ export function Player() {
   }, [currentEpisode, setIsPlaying, settings.skipBackward, settings.skipForward]);
 
   const updatePositionState = () => {
-    if ('mediaSession' in navigator && 'setPositionState' in navigator.mediaSession && mediaRef.current) {
-      const { duration, playbackRate, currentTime } = mediaRef.current;
+    if ('mediaSession' in navigator && 'setPositionState' in navigator.mediaSession && audioRef.current) {
+      const { duration, playbackRate, currentTime } = audioRef.current;
       if (!isNaN(duration) && isFinite(duration) && !isNaN(currentTime)) {
         try {
           navigator.mediaSession.setPositionState({
@@ -139,8 +133,8 @@ export function Player() {
   // Sleep timer logic with volume fade-out
   useEffect(() => {
     if (!sleepTimer || !isPlaying) {
-      if (mediaRef.current) {
-        mediaRef.current.volume = volume;
+      if (audioRef.current) {
+        audioRef.current.volume = volume;
       }
       return;
     }
@@ -150,53 +144,57 @@ export function Player() {
       if (now >= sleepTimer) {
         setIsPlaying(false);
         setSleepTimer(null);
-        if (mediaRef.current) {
-          mediaRef.current.volume = volume;
+        if (audioRef.current) {
+          audioRef.current.volume = volume;
         }
-      } else if (now >= sleepTimer - 30000 && mediaRef.current) {
+      } else if (now >= sleepTimer - 30000 && audioRef.current) {
+        // Fade out volume in the last 30 seconds
         const remaining = sleepTimer - now;
         const ratio = Math.max(0, remaining / 30000);
-        mediaRef.current.volume = volume * ratio;
-      } else if (mediaRef.current) {
-        mediaRef.current.volume = volume;
+        audioRef.current.volume = volume * ratio;
+      } else if (audioRef.current) {
+        audioRef.current.volume = volume;
       }
     }, 200);
 
     return () => {
       clearInterval(interval);
-      if (mediaRef.current) {
-        mediaRef.current.volume = volume;
+      if (audioRef.current) {
+        audioRef.current.volume = volume;
       }
     };
   }, [sleepTimer, isPlaying, volume, setIsPlaying, setSleepTimer]);
 
   useEffect(() => {
-    let isSubscribed = true;
+    if (!currentEpisode) return;
+    
+    let active = true;
+    let objectUrlToRevoke: string | null = null;
     hasRestoredProgress.current = false;
-    setIsVideoHidden(false);
-
-    if (currentEpisode) {
-      getCachedAudioUrl(currentEpisode.audioUrl).then(url => {
-        if (isSubscribed) {
-          setAudioSrc(url || currentEpisode.audioUrl);
-        }
-      });
-    } else {
-      setAudioSrc(null);
-    }
-
+    
+    const loadAudio = async () => {
+      const cachedUrl = await getCachedAudioUrl(currentEpisode.audioUrl);
+      if (active) {
+        if (cachedUrl && cachedUrl.startsWith('blob:')) objectUrlToRevoke = cachedUrl;
+        setAudioSrc(cachedUrl || currentEpisode.audioUrl);
+      } else if (cachedUrl && cachedUrl.startsWith('blob:')) {
+        URL.revokeObjectURL(cachedUrl);
+      }
+    };
+    loadAudio();
+    
     return () => {
-      isSubscribed = false;
-      if (audioSrc && audioSrc.startsWith('blob:')) {
-        URL.revokeObjectURL(audioSrc);
+      active = false;
+      if (objectUrlToRevoke) {
+        URL.revokeObjectURL(objectUrlToRevoke);
       }
     };
   }, [currentEpisode]);
 
   useEffect(() => {
-    if (mediaRef.current) {
+    if (audioRef.current) {
       if (isPlaying) {
-        mediaRef.current.play().catch(console.error);
+        audioRef.current.play().catch(console.error);
         if ('mediaSession' in navigator) {
           navigator.mediaSession.playbackState = 'playing';
         }
@@ -204,7 +202,7 @@ export function Player() {
           addToHistory(currentEpisode);
         }
       } else {
-        mediaRef.current.pause();
+        audioRef.current.pause();
         if ('mediaSession' in navigator) {
           navigator.mediaSession.playbackState = 'paused';
         }
@@ -213,15 +211,15 @@ export function Player() {
   }, [isPlaying, audioSrc, currentEpisode, addToHistory]);
 
   useEffect(() => {
-    if (mediaRef.current) {
-      mediaRef.current.playbackRate = playbackRate;
-      mediaRef.current.volume = volume;
+    if (audioRef.current) {
+      audioRef.current.playbackRate = playbackRate;
+      audioRef.current.volume = volume;
     }
   }, [playbackRate, volume]);
 
   const handleTimeUpdate = () => {
-    if (mediaRef.current && currentEpisode) {
-      const currentTime = mediaRef.current.currentTime;
+    if (audioRef.current && currentEpisode) {
+      const currentTime = audioRef.current.currentTime;
       setProgress(currentTime);
       
       if (Math.abs(currentTime - lastSavedTime.current) > 5) {
@@ -233,14 +231,14 @@ export function Player() {
   };
 
   const handleLoadedMetadata = () => {
-    if (mediaRef.current && currentEpisode) {
-      setDuration(mediaRef.current.duration);
+    if (audioRef.current && currentEpisode) {
+      setDuration(audioRef.current.duration);
       updatePositionState();
       
       if (!hasRestoredProgress.current && savedProgress[currentEpisode.id]) {
         const savedTime = savedProgress[currentEpisode.id];
-        if (savedTime < mediaRef.current.duration - 10) {
-          mediaRef.current.currentTime = savedTime;
+        if (savedTime < audioRef.current.duration - 10) {
+          audioRef.current.currentTime = savedTime;
           setProgress(savedTime);
         }
         hasRestoredProgress.current = true;
@@ -250,28 +248,15 @@ export function Player() {
 
   const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
     const time = Number(e.target.value);
-    if (mediaRef.current) {
-      mediaRef.current.currentTime = time;
+    if (audioRef.current) {
+      audioRef.current.currentTime = time;
       setProgress(time);
     }
   };
 
   const skip = (amount: number) => {
-    if (mediaRef.current) {
-      mediaRef.current.currentTime += amount;
-    }
-  };
-
-  const togglePiP = async () => {
-    if (!mediaRef.current) return;
-    try {
-      if (document.pictureInPictureElement) {
-        await document.exitPictureInPicture();
-      } else if (mediaRef.current.requestPictureInPicture) {
-        await mediaRef.current.requestPictureInPicture();
-      }
-    } catch (err) {
-      console.warn('PiP error:', err);
+    if (audioRef.current) {
+      audioRef.current.currentTime += amount;
     }
   };
 
@@ -305,12 +290,10 @@ export function Player() {
 
   return (
     <>
-      {/* Elemento de reprodução (HTMLVideoElement toca tanto áudio MP3 quanto vídeo MP4) */}
-      <video
-        ref={mediaRef}
+      <audio
+        ref={audioRef}
         src={audioSrc || undefined}
         preload="metadata"
-        playsInline
         onTimeUpdate={handleTimeUpdate}
         onLoadedMetadata={handleLoadedMetadata}
         onEnded={async () => {
@@ -321,12 +304,6 @@ export function Player() {
           }
           await playNext();
         }}
-        className={clsx(
-          "transition-opacity",
-          isVideoEpisode && !isVideoHidden && isExpanded
-            ? "w-full max-h-72 sm:max-h-80 rounded-2xl object-contain bg-black shadow-2xl mb-8 border border-white/10"
-            : "hidden"
-        )}
       />
 
       {/* Mini Player */}
@@ -346,20 +323,12 @@ export function Player() {
               />
             </div>
             
-            <div className="relative mr-4 shrink-0">
-              <img 
-                src={currentEpisode.episodeArtwork || currentEpisode.podcastArtwork} 
-                alt="Artwork" 
-                className="w-10 h-10 rounded-lg object-cover shadow-md"
-                referrerPolicy="no-referrer"
-              />
-              {isVideoEpisode && (
-                <div className="absolute -top-1 -right-1 bg-accent-main text-accent-text p-0.5 rounded shadow">
-                  <Video size={10} />
-                </div>
-              )}
-            </div>
-
+            <img 
+              src={currentEpisode.episodeArtwork || currentEpisode.podcastArtwork} 
+              alt="Artwork" 
+              className="w-10 h-10 rounded-lg object-cover mr-4 shadow-md"
+              referrerPolicy="no-referrer"
+            />
             <div className="flex-1 min-w-0">
               <h4 className="text-xs font-bold text-text-main truncate uppercase tracking-tight">{currentEpisode.title}</h4>
               <p className="text-[9px] text-text-muted font-bold truncate uppercase tracking-widest leading-none mt-1">{currentEpisode.podcastName}</p>
@@ -381,53 +350,31 @@ export function Player() {
             initial={{ opacity: 0, y: "100%" }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: "100%" }}
-            className="fixed inset-0 bg-bg-main flex flex-col p-6 z-50 pt-safe overflow-y-auto"
+            className="fixed inset-0 bg-bg-main flex flex-col p-6 z-50 pt-safe"
           >
-            <div className="flex justify-between items-center mb-6 shrink-0">
-              <button onClick={() => setIsExpanded(false)} className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center text-text-muted hover:text-text-main transition-colors">
-                <ChevronDown size={24} />
-              </button>
-              
-              <div className="flex items-center gap-2">
+            <div className="flex justify-between items-center mb-8">
+                <button onClick={() => setIsExpanded(false)} className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center text-text-muted hover:text-text-main transition-colors">
+                  <ChevronDown size={24} />
+                </button>
                 <span className="text-[10px] font-bold text-text-muted uppercase tracking-[0.2em]">Tocando Agora</span>
-                {isVideoEpisode && (
-                  <span className="inline-flex items-center gap-1 bg-accent-main/20 text-accent-main text-[9px] font-black uppercase px-2 py-0.5 rounded-full">
-                    <Video size={10} />
-                    Vídeo
-                  </span>
-                )}
+                <div className="w-12" />
               </div>
 
-              {isVideoEpisode ? (
-                <button 
-                  onClick={togglePiP} 
-                  title="Picture-in-Picture"
-                  className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center text-text-muted hover:text-text-main transition-colors"
-                >
-                  <PictureInPicture2 size={20} />
-                </button>
-              ) : (
-                <div className="w-12" />
-              )}
-            </div>
-
-            <div className="flex-1 flex flex-col items-center justify-center max-w-sm mx-auto w-full">
-              {/* Se for vídeo e não estiver oculto, o <video> acima já é renderizado na tela; se for áudio ou vídeo oculto, exibe a capa */}
-              {(!isVideoEpisode || isVideoHidden) && (
+              <div className="flex-1 flex flex-col items-center justify-center max-w-sm mx-auto w-full">
                 <motion.div
                   initial={{ scale: 0.8, opacity: 0 }}
                   animate={{ scale: 1, opacity: 1 }}
                   transition={{ delay: 0.1, type: "spring", damping: 15 }}
-                  className="relative group mb-8"
+                  className="relative group"
                 >
                   <img 
                     src={currentEpisode.episodeArtwork || currentEpisode.podcastArtwork} 
                     alt="Artwork" 
-                    className="w-72 h-72 sm:w-80 sm:h-80 rounded-2xl shadow-[0_40px_80px_rgba(0,0,0,0.5)] object-cover border border-white/5"
+                    className="w-72 h-72 sm:w-80 sm:h-80 rounded-2xl shadow-[0_40px_80px_rgba(0,0,0,0.5)] object-cover mb-12 border border-white/5"
                     referrerPolicy="no-referrer"
                   />
                   {isPlaying && (
-                    <div className="absolute -bottom-4 -right-4 w-14 h-14 bg-accent-main rounded-full flex items-center justify-center shadow-2xl">
+                    <div className="absolute -bottom-6 -right-6 w-16 h-16 bg-accent-main rounded-full flex items-center justify-center shadow-2xl">
                       <div className="flex gap-1 items-end h-5">
                         <div className="w-1 h-3 bg-accent-text rounded-full" />
                         <div className="w-1 h-5 bg-accent-text rounded-full" />
@@ -436,317 +383,290 @@ export function Player() {
                     </div>
                   )}
                 </motion.div>
-              )}
-
-              {/* Botão de Alternar Vídeo / Apenas Áudio */}
-              {isVideoEpisode && (
-                <div className="mb-4">
-                  <button
-                    onClick={() => setIsVideoHidden(!isVideoHidden)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-text-muted hover:text-text-main text-[10px] font-bold uppercase tracking-wider transition-all"
-                  >
-                    {isVideoHidden ? (
-                      <>
-                        <Eye size={12} />
-                        Exibir Vídeo
-                      </>
-                    ) : (
-                      <>
-                        <EyeOff size={12} />
-                        Apenas Áudio
-                      </>
-                    )}
-                  </button>
+                
+                <div className="text-center w-full mb-12 px-4">
+                  <h2 className="text-3xl font-black text-text-main mb-3 line-clamp-2 leading-tight tracking-tight">{currentEpisode.title}</h2>
+                  <p className="text-accent-main font-bold text-sm uppercase tracking-widest">{currentEpisode.podcastName}</p>
                 </div>
-              )}
-              
-              <div className="text-center w-full mb-8 px-4">
-                <h2 className="text-2xl sm:text-3xl font-black text-text-main mb-2 line-clamp-2 leading-tight tracking-tight">{currentEpisode.title}</h2>
-                <p className="text-accent-main font-bold text-xs uppercase tracking-widest">{currentEpisode.podcastName}</p>
-              </div>
 
-              <div className="w-full mb-8 px-2">
-                <div className="relative h-4 flex items-center mb-3">
-                  <input 
-                    type="range" 
-                    min={0} 
-                    max={duration || 100} 
-                    value={progress} 
-                    onChange={handleSeek}
-                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20"
-                  />
-                  <div className="w-full h-3 bg-white/5 rounded-full overflow-hidden">
-                    <div 
-                      className="h-full bg-accent-main transition-all duration-150 ease-out"
-                      style={{ width: `${(progress / (duration || 1)) * 100}%` }}
+                <div className="w-full mb-12 px-2">
+                  <div className="relative h-4 flex items-center mb-4">
+                    <input 
+                      type="range" 
+                      min={0} 
+                      max={duration || 100} 
+                      value={progress} 
+                      onChange={handleSeek}
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20"
                     />
+                    <div className="w-full h-3 bg-white/5 rounded-full overflow-hidden">
+                      <div 
+                        className="h-full bg-accent-main transition-all duration-150 ease-out"
+                        style={{ width: `${(progress / (duration || 1)) * 100}%` }}
+                      />
+                    </div>
+                  </div>
+                  <div className="flex justify-between text-[10px] font-black tracking-widest text-text-muted uppercase">
+                    <span className="bg-white/5 px-2 py-1 rounded-full">{formatTime(progress)}</span>
+                    <span className="bg-black/40 text-text-muted px-2 py-1 rounded-full">{formatTime(duration)}</span>
                   </div>
                 </div>
-                <div className="flex justify-between text-[10px] font-black tracking-widest text-text-muted uppercase">
-                  <span className="bg-white/5 px-2 py-1 rounded-full">{formatTime(progress)}</span>
-                  <span className="bg-black/40 text-text-muted px-2 py-1 rounded-full">{formatTime(duration)}</span>
-                </div>
-              </div>
 
-              <div className="flex items-center justify-center space-x-8 w-full mb-8">
-                <button onClick={() => skip(-(settings.skipBackward || 15))} className="w-14 h-14 rounded-full bg-white/5 flex items-center justify-center text-text-muted hover:text-text-main transition-all hover:scale-110 active:scale-90">
-                  <SkipBack size={24} fill="currentColor" />
-                </button>
-                <button 
-                  onClick={() => setIsPlaying(!isPlaying)}
-                  className="w-20 h-20 flex items-center justify-center bg-accent-main text-accent-text rounded-full hover:scale-105 active:scale-95 transition-all shadow-xl"
-                >
-                  {isPlaying ? <Pause size={30} fill="currentColor" /> : <Play size={30} fill="currentColor" className="ml-1" />}
-                </button>
-                <button onClick={() => skip(settings.skipForward || 30)} className="w-14 h-14 rounded-full bg-white/5 flex items-center justify-center text-text-muted hover:text-text-main transition-all hover:scale-110 active:scale-90">
-                  <SkipForward size={24} fill="currentColor" />
-                </button>
-              </div>
-
-              <div className="flex items-center justify-between w-full px-2 mb-6 gap-2">
-                <div className="relative">
-                  <button 
-                    onClick={() => { setShowSpeedMenu(!showSpeedMenu); setShowTimerMenu(false); }}
-                    className={clsx(
-                      "flex items-center gap-1.5 px-4 py-3 rounded-full text-[10px] font-black uppercase tracking-widest transition-all shadow-lg",
-                      playbackRate !== 1 ? "bg-accent-main text-accent-text" : "bg-white/5 text-text-muted hover:text-text-main"
-                    )}
-                  >
-                    <FastForward size={14} />
-                    {playbackRate}x
+                <div className="flex items-center justify-center space-x-8 w-full mb-12">
+                  <button onClick={() => skip(-(settings.skipBackward || 15))} className="w-14 h-14 rounded-full bg-white/5 flex items-center justify-center text-text-muted hover:text-text-main transition-all hover:scale-110 active:scale-90">
+                    <SkipBack size={24} fill="currentColor" />
                   </button>
-                  {showSpeedMenu && (
-                    <div className="absolute bottom-full left-0 mb-4 bg-bg-surface rounded-xl shadow-2xl overflow-hidden border border-white/5 min-w-[120px] backdrop-blur-xl z-30">
-                      {[0.8, 1, 1.2, 1.5, 2, 2.5].map(rate => (
-                        <button
-                          key={rate}
-                          onClick={() => { setPlaybackRate(rate); setShowSpeedMenu(false); }}
-                          className={clsx(
-                            "block w-full text-left px-6 py-4 text-[10px] font-black uppercase tracking-widest hover:bg-white/5 transition-colors",
-                            playbackRate === rate ? "text-accent-main" : "text-text-muted"
-                          )}
-                        >
-                          {rate}x
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                <div className="relative">
                   <button 
-                    onClick={() => { setShowNotes(!showNotes); setShowQueue(false); setShowSpeedMenu(false); setShowTimerMenu(false); }}
-                    className={clsx(
-                      "flex items-center gap-1.5 px-4 py-3 rounded-full text-[10px] font-black uppercase tracking-widest transition-all shadow-lg",
-                      showNotes ? "bg-accent-main text-accent-text" : "bg-white/5 text-text-muted hover:text-text-main"
-                    )}
+                    onClick={() => setIsPlaying(!isPlaying)}
+                    className="w-20 h-20 flex items-center justify-center bg-accent-main text-accent-text rounded-full hover:scale-105 active:scale-95 transition-all shadow-xl"
                   >
-                    <FileText size={14} />
-                    Notas
+                    {isPlaying ? <Pause size={30} fill="currentColor" /> : <Play size={30} fill="currentColor" className="ml-1" />}
+                  </button>
+                  <button onClick={() => skip(settings.skipForward || 30)} className="w-14 h-14 rounded-full bg-white/5 flex items-center justify-center text-text-muted hover:text-text-main transition-all hover:scale-110 active:scale-90">
+                    <SkipForward size={24} fill="currentColor" />
                   </button>
                 </div>
 
-                <div className="relative">
-                  <button 
-                    onClick={() => { setShowQueue(!showQueue); setShowNotes(false); setShowSpeedMenu(false); setShowTimerMenu(false); }}
-                    className={clsx(
-                      "flex items-center gap-1.5 px-4 py-3 rounded-full text-[10px] font-black uppercase tracking-widest transition-all shadow-lg",
-                      queue.length > 0 ? "bg-accent-main text-accent-text" : "bg-white/5 text-text-muted hover:text-text-main"
-                    )}
-                  >
-                    <ListMusic size={14} />
-                    Fila {queue.length > 0 && `(${queue.length})`}
-                  </button>
-                </div>
-
-                <div className="relative">
-                  <button 
-                    onClick={() => { setShowTimerMenu(!showTimerMenu); setShowSpeedMenu(false); }}
-                    className={clsx(
-                      "flex items-center gap-1.5 px-4 py-3 rounded-full text-[10px] font-black uppercase tracking-widest transition-all shadow-lg",
-                      sleepTimer ? "bg-accent-main text-accent-text" : "bg-white/5 text-text-muted hover:text-text-main"
-                    )}
-                  >
-                    <Clock size={14} />
-                    {sleepTimer ? getTimerRemaining() : 'Timer'}
-                  </button>
-                  {showTimerMenu && (
-                    <div className="absolute bottom-full right-0 mb-4 bg-bg-surface rounded-xl shadow-2xl overflow-hidden border border-white/5 min-w-[160px] backdrop-blur-xl z-30">
-                      <button
-                         onClick={() => handleSetTimer(null)}
-                        className={clsx(
-                          "block w-full text-left px-6 py-4 text-[10px] font-black uppercase tracking-widest hover:bg-white/5 transition-colors",
-                          !sleepTimer ? "text-accent-main" : "text-text-muted"
-                        )}
-                      >
-                        Desligado
-                      </button>
-                      {[15, 30, 45, 60, 90].map(mins => (
-                        <button
-                          key={mins}
-                          onClick={() => handleSetTimer(mins)}
-                          className="block w-full text-left px-6 py-4 text-[10px] font-black uppercase tracking-widest text-text-muted hover:bg-white/5 transition-colors"
-                        >
-                          {mins} min
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Fila Lateral / Bottom Drawer */}
-            <AnimatePresence>
-              {showQueue && (
-                <motion.div 
-                  initial={{ opacity: 0, y: 100 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: 100 }}
-                  className="fixed inset-x-0 bottom-0 top-20 bg-bg-surface/95 backdrop-blur-2xl rounded-t-3xl border-t border-white/10 p-6 flex flex-col z-50 max-w-lg mx-auto"
-                >
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center gap-2">
-                      <ListMusic size={18} className="text-accent-main" />
-                      <h3 className="text-sm font-black uppercase tracking-wider text-text-main">Fila de Reprodução</h3>
-                      <span className="text-[10px] font-bold text-text-muted">({queue.length})</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {queue.length > 0 && (
-                        <button
-                          onClick={clearQueue}
-                          className="text-[10px] font-bold uppercase tracking-wider text-red-400 hover:text-red-300 flex items-center gap-1 px-2 py-1 rounded-lg bg-red-500/10"
-                        >
-                          <Trash2 size={12} />
-                          Limpar
-                        </button>
+                <div className="flex items-center justify-between w-full px-2 mb-8 gap-2">
+                  <div className="relative">
+                    <button 
+                      onClick={() => { setShowSpeedMenu(!showSpeedMenu); setShowTimerMenu(false); }}
+                      className={clsx(
+                        "flex items-center gap-1.5 px-4 py-3 rounded-full text-[10px] font-black uppercase tracking-widest transition-all shadow-lg",
+                        playbackRate !== 1 ? "bg-accent-main text-accent-text" : "bg-white/5 text-text-muted hover:text-text-main"
                       )}
-                      <button
-                        onClick={() => setShowQueue(false)}
-                        className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-text-muted hover:text-text-main"
-                      >
-                        <ChevronDown size={18} />
-                      </button>
-                    </div>
+                    >
+                      <FastForward size={14} />
+                      {playbackRate}x
+                    </button>
+                    {showSpeedMenu && (
+                      <div className="absolute bottom-full left-0 mb-4 bg-bg-surface rounded-xl shadow-2xl overflow-hidden border border-white/5 min-w-[120px] backdrop-blur-xl">
+                        {[0.8, 1, 1.2, 1.5, 2, 2.5].map(rate => (
+                          <button
+                            key={rate}
+                            onClick={() => { setPlaybackRate(rate); setShowSpeedMenu(false); }}
+                            className={clsx(
+                              "block w-full text-left px-6 py-4 text-[10px] font-black uppercase tracking-widest hover:bg-white/5 transition-colors",
+                              playbackRate === rate ? "text-accent-main" : "text-text-muted"
+                            )}
+                          >
+                            {rate}x
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </div>
 
-                  {queue.length === 0 ? (
-                    <div className="flex-1 flex flex-col items-center justify-center text-center p-6 text-text-muted">
-                      <ListMusic size={32} className="mb-2 opacity-50" />
-                      <p className="text-xs font-semibold">Sua fila está vazia.</p>
-                      <p className="text-[10px] opacity-70 mt-1">Toque no botão + em qualquer episódio para enfileirar.</p>
-                    </div>
-                  ) : (
-                    <div className="flex-1 overflow-y-auto divide-y divide-white/5 -mx-2 px-2">
-                      {queue.map((item, index) => (
-                        <div key={item.id} className="py-3 flex items-center gap-3 group">
-                          <div className="flex flex-col gap-0.5">
-                            <button
-                              onClick={() => reorderQueue(index, Math.max(0, index - 1))}
-                              disabled={index === 0}
-                              className="text-text-muted hover:text-text-main disabled:opacity-20 p-0.5"
-                              title="Subir"
-                            >
-                              <ChevronDown size={14} className="rotate-180" />
-                            </button>
-                            <button
-                              onClick={() => reorderQueue(index, Math.min(queue.length - 1, index + 1))}
-                              disabled={index === queue.length - 1}
-                              className="text-text-muted hover:text-text-main disabled:opacity-20 p-0.5"
-                              title="Descer"
-                            >
-                              <ChevronDown size={14} />
-                            </button>
-                          </div>
-                          <img
-                            src={item.episodeArtwork || item.podcastArtwork}
-                            alt=""
-                            className="w-10 h-10 rounded-lg object-cover bg-bg-surface shrink-0"
-                          />
-                          <div
-                            onClick={async () => {
-                              removeFromQueue(item.id);
-                              await setCurrentEpisode(item);
-                              setIsPlaying(true);
-                              setShowQueue(false);
-                            }}
-                            className="flex-1 min-w-0 cursor-pointer"
-                          >
-                            <h4 className="text-xs font-bold text-text-main truncate group-hover:text-accent-main transition-colors">
-                              {item.title}
-                            </h4>
-                            <p className="text-[10px] text-text-muted truncate mt-0.5">
-                              {item.podcastName}
-                            </p>
-                          </div>
-                          <button
-                            onClick={() => removeFromQueue(item.id)}
-                            className="text-text-muted hover:text-red-400 p-2 transition-colors"
-                            title="Remover da fila"
-                          >
-                            <Trash2 size={14} />
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </motion.div>
-              )}
-            </AnimatePresence>
-
-            {/* Show Notes Drawer com Timestamps Clicáveis */}
-            <AnimatePresence>
-              {showNotes && (
-                <motion.div 
-                  initial={{ opacity: 0, y: 100 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: 100 }}
-                  className="fixed inset-x-0 bottom-0 top-20 bg-bg-surface/95 backdrop-blur-2xl rounded-t-3xl border-t border-white/10 p-6 flex flex-col z-50 max-w-lg mx-auto"
-                >
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center gap-2">
-                      <FileText size={18} className="text-accent-main" />
-                      <h3 className="text-sm font-black uppercase tracking-wider text-text-main">Notas do Episódio</h3>
-                    </div>
-                    <button
-                      onClick={() => setShowNotes(false)}
-                      className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-text-muted hover:text-text-main"
+                  <div className="relative">
+                    <button 
+                      onClick={() => { setShowNotes(!showNotes); setShowQueue(false); setShowSpeedMenu(false); setShowTimerMenu(false); }}
+                      className={clsx(
+                        "flex items-center gap-1.5 px-4 py-3 rounded-full text-[10px] font-black uppercase tracking-widest transition-all shadow-lg",
+                        showNotes ? "bg-accent-main text-accent-text" : "bg-white/5 text-text-muted hover:text-text-main"
+                      )}
                     >
-                      <ChevronDown size={18} />
+                      <FileText size={14} />
+                      Notas
                     </button>
                   </div>
 
-                  <div className="flex-1 overflow-y-auto text-xs leading-relaxed text-text-muted space-y-3 pr-1">
-                    <h4 className="text-sm font-bold text-text-main">{currentEpisode.title}</h4>
-                    <div className="whitespace-pre-wrap font-sans">
-                      {splitTextWithTimestamps(currentEpisode.description).map((seg, i) => {
-                        if (seg.type === 'timestamp' && seg.seconds !== undefined) {
-                          return (
-                            <button
-                              key={i}
-                              onClick={() => {
-                                if (mediaRef.current) {
-                                  mediaRef.current.currentTime = seg.seconds!;
-                                  setProgress(seg.seconds!);
-                                  setIsPlaying(true);
-                                }
-                              }}
-                              className="inline-block px-1.5 py-0.5 mx-1 rounded bg-accent-main/20 text-accent-main font-bold text-[11px] hover:bg-accent-main hover:text-accent-text transition-colors"
-                            >
-                              {seg.value}
-                            </button>
-                          );
-                        }
-                        return <span key={i}>{seg.value}</span>;
-                      })}
-                    </div>
+                  <div className="relative">
+                    <button 
+                      onClick={() => { setShowQueue(!showQueue); setShowNotes(false); setShowSpeedMenu(false); setShowTimerMenu(false); }}
+                      className={clsx(
+                        "flex items-center gap-1.5 px-4 py-3 rounded-full text-[10px] font-black uppercase tracking-widest transition-all shadow-lg",
+                        queue.length > 0 ? "bg-accent-main text-accent-text" : "bg-white/5 text-text-muted hover:text-text-main"
+                      )}
+                    >
+                      <ListMusic size={14} />
+                      Fila {queue.length > 0 && `(${queue.length})`}
+                    </button>
                   </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </motion.div>
-        )}
-      </AnimatePresence>
+
+                  <div className="relative">
+                    <button 
+                      onClick={() => { setShowTimerMenu(!showTimerMenu); setShowSpeedMenu(false); }}
+                      className={clsx(
+                        "flex items-center gap-1.5 px-4 py-3 rounded-full text-[10px] font-black uppercase tracking-widest transition-all shadow-lg",
+                        sleepTimer ? "bg-accent-main text-accent-text" : "bg-white/5 text-text-muted hover:text-text-main"
+                      )}
+                    >
+                      <Clock size={14} />
+                      {sleepTimer ? getTimerRemaining() : 'Timer'}
+                    </button>
+                    {showTimerMenu && (
+                      <div className="absolute bottom-full right-0 mb-4 bg-bg-surface rounded-xl shadow-2xl overflow-hidden border border-white/5 min-w-[160px] backdrop-blur-xl">
+                        <button
+                           onClick={() => handleSetTimer(null)}
+                          className={clsx(
+                            "block w-full text-left px-6 py-4 text-[10px] font-black uppercase tracking-widest hover:bg-white/5 transition-colors",
+                            !sleepTimer ? "text-accent-main" : "text-text-muted"
+                          )}
+                        >
+                          Desligado
+                        </button>
+                        {[15, 30, 45, 60, 90].map(mins => (
+                          <button
+                            key={mins}
+                            onClick={() => handleSetTimer(mins)}
+                            className="block w-full text-left px-6 py-4 text-[10px] font-black uppercase tracking-widest text-text-muted hover:bg-white/5 transition-colors"
+                          >
+                            {mins} min
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Show Notes Overlay Drawer with Clickable Timestamps */}
+                <AnimatePresence>
+                  {showNotes && (
+                    <motion.div
+                      initial={{ y: '100%' }}
+                      animate={{ y: 0 }}
+                      exit={{ y: '100%' }}
+                      transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+                      className="absolute inset-x-0 bottom-0 top-20 bg-bg-surface/95 backdrop-blur-2xl rounded-t-3xl border-t border-white/10 z-30 flex flex-col p-6 shadow-[0_-20px_50px_rgba(0,0,0,0.5)]"
+                    >
+                      <div className="flex justify-between items-center mb-4">
+                        <h3 className="text-lg font-bold text-text-main">Notas do Episódio</h3>
+                        <button 
+                          onClick={() => setShowNotes(false)} 
+                          className="text-xs font-bold text-text-muted hover:text-text-main uppercase tracking-widest"
+                        >
+                          Fechar
+                        </button>
+                      </div>
+                      <div className="flex-1 overflow-y-auto pr-1 text-sm text-text-muted leading-relaxed whitespace-pre-wrap">
+                        {currentEpisode.description ? (
+                          splitTextWithTimestamps(currentEpisode.description).map((seg, i) =>
+                            seg.type === 'timestamp' && seg.seconds !== undefined ? (
+                              <button
+                                key={i}
+                                onClick={() => {
+                                  if (audioRef.current) {
+                                    audioRef.current.currentTime = seg.seconds!;
+                                    setProgress(seg.seconds!);
+                                  }
+                                  setIsPlaying(true);
+                                  setShowNotes(false);
+                                }}
+                                className="inline-flex items-center px-2 py-0.5 mx-0.5 rounded-md bg-accent-main/15 text-accent-main font-mono font-bold text-xs hover:bg-accent-main hover:text-accent-text transition-colors"
+                                title={`Pular para ${seg.value}`}
+                              >
+                                {seg.value}
+                              </button>
+                            ) : (
+                              <React.Fragment key={i}>{seg.value}</React.Fragment>
+                            )
+                          )
+                        ) : (
+                          <p className="text-center text-xs uppercase tracking-wider py-12 opacity-60">
+                            Sem descrição disponível para este episódio.
+                          </p>
+                        )}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                {/* Queue Overlay Drawer */}
+                <AnimatePresence>
+                  {showQueue && (
+                    <motion.div
+                      initial={{ y: '100%' }}
+                      animate={{ y: 0 }}
+                      exit={{ y: '100%' }}
+                      transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+                      className="absolute inset-x-0 bottom-0 top-20 bg-bg-surface/95 backdrop-blur-2xl rounded-t-3xl border-t border-white/10 z-30 flex flex-col p-6 shadow-[0_-20px_50px_rgba(0,0,0,0.5)]"
+                    >
+                      <div className="flex justify-between items-center mb-6">
+                        <h3 className="text-lg font-bold text-text-main">Fila de Reprodução ({queue.length})</h3>
+                        <div className="flex gap-4">
+                          {queue.length > 0 && (
+                            <button 
+                              onClick={() => clearQueue()}
+                              className="text-xs font-bold text-red-500 hover:text-red-400 uppercase tracking-widest"
+                            >
+                              Limpar
+                            </button>
+                          )}
+                          <button 
+                            onClick={() => setShowQueue(false)} 
+                            className="text-xs font-bold text-text-muted hover:text-text-main uppercase tracking-widest"
+                          >
+                            Fechar
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="flex-1 overflow-y-auto space-y-3 pr-1 scrollbar-thin">
+                        {queue.length === 0 ? (
+                          <div className="flex flex-col items-center justify-center h-full text-text-muted text-sm gap-2">
+                            <ListMusic size={32} className="opacity-40" />
+                            <p className="font-semibold uppercase tracking-wider text-[10px]">A fila está vazia</p>
+                          </div>
+                        ) : (
+                          queue.map((ep, idx) => (
+                            <div key={ep.id + '-' + idx} className="flex items-center gap-3 bg-white/5 p-3 rounded-xl border border-white/5 group">
+                              <div className="flex flex-col gap-0.5">
+                                <button
+                                  onClick={() => idx > 0 && reorderQueue(idx, idx - 1)}
+                                  disabled={idx === 0}
+                                  className="text-text-muted hover:text-text-main disabled:opacity-20 p-0.5 transition-colors"
+                                  title="Mover para cima"
+                                >
+                                  <ChevronUp size={14} />
+                                </button>
+                                <button
+                                  onClick={() => idx < queue.length - 1 && reorderQueue(idx, idx + 1)}
+                                  disabled={idx === queue.length - 1}
+                                  className="text-text-muted hover:text-text-main disabled:opacity-20 p-0.5 transition-colors"
+                                  title="Mover para baixo"
+                                >
+                                  <ChevronDown size={14} />
+                                </button>
+                              </div>
+                              <button
+                                onClick={async () => {
+                                  await removeFromQueue(ep.id);
+                                  await setCurrentEpisode(ep);
+                                  setIsPlaying(true);
+                                  setShowQueue(false);
+                                }}
+                                className="flex items-center gap-3 flex-1 min-w-0 text-left"
+                                title="Tocar agora"
+                              >
+                                <img 
+                                  src={ep.episodeArtwork || ep.podcastArtwork} 
+                                  alt={ep.title} 
+                                  className="w-10 h-10 rounded-lg object-cover shrink-0"
+                                  referrerPolicy="no-referrer"
+                                />
+                                <div className="flex-1 min-w-0">
+                                  <h4 className="text-xs font-semibold text-text-main truncate group-hover:text-accent-main transition-colors">{ep.title}</h4>
+                                  <p className="text-[10px] text-text-muted truncate mt-0.5 uppercase tracking-wider font-bold">{ep.podcastName}</p>
+                                </div>
+                              </button>
+                              <button 
+                                onClick={() => removeFromQueue(ep.id)}
+                                className="text-text-muted hover:text-red-500 p-2 transition-colors opacity-80 group-hover:opacity-100"
+                                title="Remover da fila"
+                              >
+                                <Trash2 size={16} />
+                              </button>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
     </>
   );
 }
